@@ -1,7 +1,13 @@
 ## Annotations
 
 * `M` - RAM value
-* `BP` LCD control register BP
+* `BP` - LCD control register BP
+* `BC` - LCD Power. On when low
+* `BA` - Input pin
+* `Beta` - Input pin
+* `1S` - One second signal output by divider. `Gamma` is set on the rising edge of that function
+* `F1` - 14th bit of the clock divider, 0 indexed
+* `F4` - 11th bit of the clock divider, 0 indexed - TODO: MAME uses the 10th bit
 
 ## 1. RAM Address Instructions
 
@@ -30,11 +36,18 @@ Notes:
 | `IDX yz`           | `0x00-FE`               | `{Pu, Pm, Pl} <- {y[7:6], 4'h4, x[5:0]}, `                           | Not a real opcode. Always preceeded by `TMI`. Loads immediate into PC                                      |
 | `T xy`             | `0x80-BF`               | `Pl <- x[5:0]`                                                       | Short jump, within page. Set `Pl` to immediate                                                             |
 
-Notes:
-1. Docs list this as `TM x IDX yz`, which just seems stupid, hence my renaming
-2. Docs list `Pu <- 0, Pm <- 0`, which is immediately contradicted with them actually being set to values
-
 ## 3. Data Transfer Instructions
+
+| Mnemonic | Opcode    | Operation                                                                               | Description                                                                                                                                |
+| -------- | --------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `EXC x`  | `0x10-13` | `Acc <-> M, Bm[1:0] <- Bm[1:0] ^ x[1:0]`                                                | Swap Acc and RAM value. XOR `Bm` with immed                                                                                                |
+| `BDC`    | `0x6D`    | `BC <- C`                                                                               | Set LCD power. Display is on if `C` is low                                                                                                 |
+| `EXCI x` | `0x14-17` | `Acc <-> M, Bm[1:0] <- Bm[1:0] ^ x[1:0]`. Skip next instr if `Bl = 0xF`. `Bl <- Bl + 1` | Swap Acc and RAM value. XOR `Bm` with immed. Increment `Bl`. If original `Bl` was `0xF`, skip next instruction. Combines `EXCI` and `INCB` |
+| `EXCD x` | `0x1C-1F` | `Acc <-> M, Bm[1:0] <- Bm[1:0] ^ x[1:0]`. Skip next instr if `Bl = 0x0`. `Bl <- Bl - 1` | Swap Acc and RAM value. XOR `Bm` with immed. Decrement `Bl`. If original `Bl` was `0x0`, skip next instruction. Combines `EXCI` and `DECB` |
+| `LDA x`  | `0x18-1B` | `Acc <- M, Bm[1:0] <- Bm[1:0] ^ x[1:0]`                                                 | Load Acc with RAM value. XOR `Bm` with immed                                                                                               |
+| `LAX x`  | `0x20-2F` | `Acc <- x[3:0]`. Skip next instr if also LAX                                            | Load Acc with immed. If following instruction is `LAX`, skip it                                                                            |
+| `WR`     | `0x62`    | `W[7] <- W[6] <- ... <- W[0] <- 0`                                                      | Shift 0 into `W`                                                                                                                           |
+| `WS`     | `0x63`    | `W[7] <- W[6] <- ... <- W[0] <- 1`                                                      | Shift 1 into `W`                                                                                                                           |
 
 ## 4. I/O Instructions
 
@@ -61,6 +74,34 @@ Notes:
 
 ## 6. Test Instructions
 
+| Mnemonic | Opcode    | Operation                                 | Description                                                 |
+| -------- | --------- | ----------------------------------------- | ----------------------------------------------------------- |
+| `TB`     | `0x51`    | Skip next instr if `Beta = 1`             |                                                             |
+| `TC`     | `0x52`    | Skip next instr if `C = 0`                |                                                             |
+| `TAM`    | `0x53`    | Skip next instr if `Acc = M`              |                                                             |
+| `TMI x`  | `0x54-57` | Skip next instr if `M[x[1:0]] = 1`        |                                                             |
+| `TAO`    | `0x5A`    | Skip next instr if `Acc = 0`              |                                                             |
+| `TABL`   | `0x5B`    | Skip next instr if `Acc = Bl`             |                                                             |
+| `TIS`    | `0x58`    | Skip next instr if `1S = 0`, `Gamma <- 0` | Check one second clock divider signal and zero `Gamma` \[1] |
+| `TAL`    | `0x5E`    | Skip next instr if `BA = 1`               |                                                             |
+| `TF1`    | `0x68`    | Skip next instr if `F1 = 1`               | Clock divider value                                         |
+| `TF4`    | `0x69`    | Skip next instr if `F4 = 1`               | Clock divider value \[2]                                    |
+
+Note:
+1. MAME does not check the clock divider value, but the current state of `Gamma`. TODO: Is this correct?
+2. MAME says this should be the 10th bit, but if F1 is 14, then F4 should be 11
+
 ## 7. Bit Manipulation Instructions
 
+| Mnemonic | Opcode    | Operation        | Description                          |
+| -------- | --------- | ---------------- | ------------------------------------ |
+| `RM x`   | `0x04-07` | `M[x[1:0]] <- 0` | Zero bit of RAM indexed by immediate |
+| `SM x`   | `0x0C-0F` | `M[x[1:0]] <- 1` | Set bit of RAM indexed by immediate  |
+
 ## 8. Special Instructions
+
+| Mnemonic | Opcode | Operation                       |
+| -------- | ------ | ------------------------------- |
+| `SKIP`   | `0x00` | Do nothing                      |
+| `CEND`   | `0x5D` | Stop clock                      |
+| `IDIV`   | `0x65` | `DIV <- 0`. Reset clock divider |
