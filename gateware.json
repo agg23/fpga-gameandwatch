@@ -1,0 +1,23 @@
+{
+    "name": "gameandwatch",
+    "displayName": "gameandwatch",
+    "description": "Nintendo's first video games",
+    "author": "agg23",
+    "version": "1.0.0",
+    "license": "MIT",
+    "repository": "https://github.com/agg23/fpga-gameandwatch",
+    "keywords": [
+        "ecosystem:gateman"
+    ],
+    "scripts": {
+        "verilator": "echo \"Error: no simulation specified\" && exit 1"
+    },
+    "hardware": {
+        "id": "sm510",
+        "name": "SM510",
+        "year": 1980,
+        "manufacturer": "Sharp"
+    },
+    "platforms": {},
+    "modules": {}
+}
