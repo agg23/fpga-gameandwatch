@@ -9,6 +9,10 @@
 * `F1` - 14th bit of the clock divider, 0 indexed
 * `F4` - 11th bit of the clock divider, 0 indexed - TODO: MAME uses the 10th bit
 
+## Timing
+
+Docs list oscillator at 32.768kHz and typical 61us instruction timing, which implies two cycles. Assuming two byte instructions, and particularly `TMI` to `IDX` is multiple cycles
+
 ## 1. RAM Address Instructions
 
 | Mnemonic          | Opcode        | Operation                                                      | Description                                                                                                                                                  |
