@@ -8,7 +8,7 @@ module sm510 (
 
     // Data for external ROM
     input  wire [ 7:0] opcode,
-    output wire [11:0] rom_addr,
+    output wire [11:0] pc,
 
     // The K1-4 input pins
     input wire [3:0] input_k,
@@ -18,63 +18,167 @@ module sm510 (
     input wire input_beta,
 
     // The H1-4 output pins
-    output wire [3:0] output_h,
+    output wire [3:0] output_lcd_h,
 
     // The S1-8 strobe output pins
-    output wire [7:0] output_s,
+    output wire [7:0] output_shifter_s,
 
     // LCD Segments
     output wire [15:0] segment_a,
     output wire [15:0] segment_b,
-    // TODO: What is this?
-    output wire segment_bs,
+    // Comb
+    output reg segment_bs,
 
     // Audio
-    output wire [1:0] buzzer_r
+    output reg [1:0] buzzer_r
 );
   // PC
   reg [1:0] Pu = 0;
   reg [3:0] Pm = 0;
   reg [5:0] Pl = 0;
 
-  wire [11:0] pc = {Pu, Pm, Pl};
+  assign pc = {Pu, Pm, Pl};
 
   reg [11:0] stack_s = 0;
   reg [11:0] stack_r = 0;
-
-  // RAM Address
-  reg [2:0] Bm = 0;
-  reg [3:0] Bl = 0;
-
-  wire [6:0] ram_addr = {Bm, Bl};
 
   // Accumulator
   reg [3:0] Acc = 0;
   reg carry = 0;
 
   // LCD Functions
-  reg [3:0] BP = 0;
+  // LCD pulse generator circuit
   reg lcd_bp = 0;
+  // LCD bleeder circuit (on means no display)
+  reg lcd_bc = 0;
 
   reg [3:0] segment_l = 0;
+
+  // TODO: Currently unused. See LCD pulsing
   reg [3:0] segment_y = 0;
 
   reg [7:0] shifter_w = 0;
+  assign output_shifter_s = shifter_w;
 
-  ///////////
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Divider
 
-  wire divider_one_second = 0;
   reg gamma = 0;
 
   reg [14:0] divider = 0;
+  reg divider_1s_tick = 0;
+  wire divider_64hz = divider[10];
 
-  ///////////
+  always @(posedge clk) begin
+    if (reset) begin
+      divider <= 0;
+    end else if (clk_en) begin
+      divider_1s_tick <= 0;
+
+      if (reset_gamma) begin
+        gamma <= 0;
+      end
+
+      if (reset_divider) begin
+        divider <= 0;
+      end else begin
+        // Increment
+        divider <= divider + 15'h1;
+
+        if (divider == 15'h7FFF) begin
+          // Will wrap to 0 next cycle. 1 second has elapsed
+          gamma <= 1;
+          divider_1s_tick <= 1;
+        end
+      end
+    end
+  end
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // LCD Strobe
+
+  // Select the active bit of display memory words in use
+  reg [3:0] lcd_h = 0;
+
+  assign output_lcd_h = lcd_h;
+
+  reg prev_divider_64hz = 0;
+
+  always @(posedge clk) begin
+    if (~reset && clk_en) begin
+      prev_divider_64hz <= divider_64hz;
+
+      if (divider_64hz && ~prev_divider_64hz) begin
+        // Strobe LCD
+        if (lcd_h[3]) begin
+          // Wrap
+          lcd_h <= 4'h1;
+        end else begin
+          lcd_h <= {lcd_h[2:0], 1'b0};
+        end
+      end
+    end
+  end
+
+  always_comb begin
+    reg [3:0] temp;
+    // TODO: This should also use Y somehow
+    // Use same timing and position as H
+    temp = lcd_h & segment_l;
+
+    // If bit is set, pulse bs
+    segment_bs = temp != 0;
+  end
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // RAM
+
+  // RAM Address
+  reg [2:0] Bm = 0;
+  reg [3:0] Bl = 0;
+
+  wire [6:0] ram_addr = {Bm, Bl};
+  wire [3:0] ram_data;
+
+  reg ram_wr = 0;
+  reg [3:0] ram_wr_data = 0;
+
+  ram ram (
+      .clk(clk),
+
+      .addr(ram_addr),
+      .wren(ram_wr),
+      .data(ram_wr_data),
+      .q(ram_data),
+
+      .lcd_h(lcd_h),
+      .segment_a(segment_a),
+      .segment_b(segment_b)
+  );
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Halt
+
+  always @(posedge clk) begin
+    if (clk_en) begin
+      reset_halt <= 0;
+
+      if (divider_1s_tick || input_k != 0) begin
+        // Wake from halt
+        reset_halt <= 1;
+      end
+    end
+  end
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Stages
 
   localparam STAGE_LOAD_PC = 0;
   localparam STAGE_DECODE_PERF_1 = 1;
   localparam STAGE_PERF_2 = 2;
   localparam STAGE_IDX_FETCH = 3;
   localparam STAGE_IDX_PERF = 4;
+  localparam STAGE_HALT = 5;
 
   reg [2:0] stage = STAGE_LOAD_PC;
 
@@ -83,7 +187,16 @@ module sm510 (
       stage <= STAGE_LOAD_PC;
     end else if (clk_en) begin
       case (stage)
-        STAGE_LOAD_PC: stage <= STAGE_DECODE_PERF_1;
+        STAGE_LOAD_PC: begin
+          if (halt) begin
+            stage <= STAGE_HALT;
+          end else if (skip_next_instr || skip_next_if_lax && opcode[7:4] == 4'h2) begin
+            // Skip
+            stage <= STAGE_LOAD_PC;
+          end else begin
+            stage <= STAGE_DECODE_PERF_1;
+          end
+        end
         STAGE_DECODE_PERF_1: begin
           state <= STAGE_LOAD_PC;
 
@@ -98,6 +211,11 @@ module sm510 (
         STAGE_PERF_2: stage <= STAGE_LOAD_PC;
         STAGE_IDX_FETCH: stage <= STAGE_IDX_PERF;
         STAGE_IDX_PERF: stage <= STAGE_LOAD_PC;
+        STAGE_HALT: begin
+          if (reset_halt) begin
+            stage <= STAGE_LOAD_PC;
+          end
+        end
       endcase
     end
   end
@@ -109,17 +227,16 @@ module sm510 (
 
   reg temp_sbm = 0;
 
+  reg reset_divider = 0;
+  reg reset_gamma = 0;
+
   reg halt = 0;
+  reg reset_halt = 0;
 
   // Internal
   reg [7:0] last_opcode = 0;
 
-  // RAM
-  // TODO: Handle
-  wire [3:0] ram_data;
-
-  reg ram_wr = 0;
-  reg [3:0] ram_wr_data = 0;
+  reg last_temp_sbm = 0;
 
   // Instruction shortcuts
   task exc_x(reg swap);
@@ -162,10 +279,36 @@ module sm510 (
   wire is_tmi = opcode[7:6] == 2'b11;
 
   always @(posedge clk) begin
-    if (clk_en) begin
+    if (reset) begin
+      lcd_bp <= 0;
+      lcd_bc <= 0;
+    end else if (clk_en) begin
+      reset_divider <= 0;
+      reset_gamma   <= 0;
+
       case (stage)
+        STAGE_LOAD_PC: begin
+          skip_next_instr  <= 0;
+          skip_next_if_lax <= 0;
+
+          if (last_temp_sbm && ~temp_sbm) begin
+            // Clear Bm high to reset it after SBM
+            Bm[2] <= 0;
+          end
+
+          // Increment PC
+          // TODO: Is this correct, it doesn't match MAME?
+          Pl <= {Pl[0] == Pl[1], Pl[5:1]};
+        end
+        STAGE_HALT: begin
+          // Load PC at 1_0_00
+          {Pu, Pm, Pl} <= {2'b1, 4'b0, 6'b0};
+        end
         STAGE_DECODE_PERF_1: begin
           last_opcode <= opcode;
+          last_temp_sbm <= temp_sbm;
+
+          temp_sbm <= 0;
 
           casex (opcode)
             8'h00: begin
@@ -173,12 +316,12 @@ module sm510 (
             end
             8'h01: begin
               // ATBP. Set LCD BP to Acc
-              BP <= Acc;
+              lcd_bp <= Acc[0];
             end
             8'h02: begin
               // SBM. Set high bit of Bm high for next instruction only. Returns to 0 after
               temp_sbm <= 1;
-              Bm[1] <= 1;
+              Bm[2] <= 1;
             end
             8'h03: begin
               // ATPL. Load Pl with Acc
@@ -288,9 +431,10 @@ module sm510 (
             end
             8'h58: begin
               // TIS. Skip next instruction if one second clock divider signal is low. Zero gamma
-              skip_next_instr <= ~divider_one_second;
+              // TODO: All sources seem to consider gamma as the one second signal. We're using it for now
+              skip_next_instr <= ~gamma;
 
-              gamma <= 0;
+              reset_gamma <= 1;
             end
             8'h59: begin
               // ATL. Set segment output L to Acc
@@ -309,7 +453,7 @@ module sm510 (
               // CEND. Stop clock
               halt <= 1;
 
-              divider <= 0;
+              reset_divider <= 1;
             end
             8'h5E: begin
               // TAL. Skip next instruction if BA = 1
@@ -341,7 +485,7 @@ module sm510 (
             end
             8'h65: begin
               // IDIV. Reset clock divider
-              divider <= 0;
+              reset_divider <= 1;
             end
             8'h66: begin
               // RC. Clear carry
@@ -373,7 +517,7 @@ module sm510 (
             end
             8'h6D: begin
               // BDC. Set LCD power. Display is on when low
-              lcd_bp <= carry;
+              lcd_bc <= carry;
             end
             8'h6E: begin
               // RTN0. Pop stack. Move S into PC, and R into S

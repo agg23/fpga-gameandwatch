@@ -58,7 +58,7 @@ Notes:
 | Mnemonic | Opcode | Operation       | Description                                                |
 | -------- | ------ | --------------- | ---------------------------------------------------------- |
 | `KTA`    | `0x6A` | `Acc <- K`      | Reads `K` input bits into Acc                              |
-| `ATBP`   | `0x01` | `BP <- Acc`     | Set LCD BP reg to Acc                                      |
+| `ATBP`   | `0x01` | `BP <- Acc[0]`  | Set LCD BP reg to Acc                                      |
 | `ATL`    | `0x59` | `L <- Acc`      | Set Segment output `L` to Acc                              |
 | `ATFC`   | `0x60` | `Y <- Acc`      | Set Segment output `Y` to Acc                              |
 | `ATR`    | `0x61` | `R <- Acc[1:0]` | Set `R` buzzer control value to the bottom two bits of Acc |

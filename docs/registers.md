@@ -41,4 +41,18 @@ Hardware registers for maintaining stack depth and values. `S` is the first leve
 * `W` - 8 bits - Shift register - TODO: Is this necessary?
 * `Bm` - 3 bits - Upper 3 bits of RAM address
 * `Bl` - 4 bits - Lower 4 bits of RAM address
-* `H`, `L`, `Y` - 4 bits - Flip flop - TODO: Is this necessary
+* `L`, `Y` - 4 bits - Flip flop - TODO: Is this necessary
+
+# IO
+
+## Inputs
+
+* `K` - 4 bits. Arbitrary 4 bits
+* `BA` - 1 bit. Arbitrary 1 bit
+* `BETA` - 1 bit. Arbitrary 1 bit
+
+## Outputs
+
+* `H` - 4 bits - Controls which bit (out of 4) for each word in display memory is being used to drive the segments. Docs say it has a 1/4 duty cycle, so each bit is high 1/4th of the time, so it's driven by a counter up to 4. An aside lists the frame frequency as 64Hz
+* `S` - 8 bits - Directly driven by the `W` register
+* `BS` - 1 bit - Somehow driven by "the contents of the `L` or `Y` register", but it doesn't describe how. It uses the same 1/4 duty cycle, so assumedly it changes along with `H`. MAME ANDs the two registers, but only sometime. TODO: This is implemented with only `L` at the moment
