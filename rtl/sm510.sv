@@ -7,6 +7,8 @@ module sm510 (
     input wire reset,
 
     // Data for external ROM
+    // NOTE: rom_data is expected to be updated with clk_en, and not run at a higher clock
+    // Doing so will break this CPU's operation
     input  wire [ 7:0] rom_data,
     output wire [11:0] rom_addr,
 
@@ -67,6 +69,9 @@ module sm510 (
   reg skip_next_if_lax = 0;
 
   reg temp_sbm = 0;
+
+  reg [5:0] next_ram_addr = 0;
+  reg wr_next_ram_addr = 0;
 
   reg reset_divider = 0;
   reg reset_gamma = 0;
@@ -168,7 +173,8 @@ module sm510 (
   ram ram (
       .clk(clk),
 
-      .addr(ram_addr),
+      // While temp_sbm is set, we operate as if the highest bit is high, rather than its current value
+      .addr(temp_sbm ? {1'b1, ram_addr[5:0]} : ram_addr),
       .wren(ram_wr),
       .data(ram_wr_data),
       .q(ram_data),
@@ -195,28 +201,7 @@ module sm510 (
   ////////////////////////////////////////////////////////////////////////////////////////
   // Stages
 
-  reg [7:0] stored_opcode = 0;
-
-  reg [11:0] prev_pc = 0;
-  reg use_stored_opcode = 0;
-
-  // The current opcode for this instruction
-  wire [7:0] opcode = use_stored_opcode ? stored_opcode : rom_data;
-
-  // This system ensures that the correct opcode stays around for the clk_en processes to use
-  // TODO: Improve this
-  // TODO: This doesn't actually work
-  always @(posedge clk) begin
-    if (pc != prev_pc) begin
-      use_stored_opcode <= 1;
-    end
-
-    if (clk_en) begin
-      prev_pc <= pc;
-      use_stored_opcode <= 0;
-      stored_opcode <= opcode;
-    end
-  end
+  wire [7:0] opcode = rom_data;
 
   // LBL xy | TL/TML xyz
   wire is_two_bytes = opcode == 8'h5F || opcode[7:4] == 4'h7;
@@ -274,6 +259,7 @@ module sm510 (
 
   // Internal
   reg [7:0] last_opcode = 0;
+  reg [5:0] last_Pl = 0;
 
   reg last_temp_sbm = 0;
 
@@ -283,21 +269,27 @@ module sm510 (
     Acc <= ram_data;
 
     if (swap) begin
-      ram_wr_data <= ram_data;
+      ram_wr_data <= Acc;
       ram_wr <= 1;
     end
 
     // XOR Bm with immed
-    Bm[1:0] <= Bm[1:0] ^ opcode[1:0];
+    // Will be written in STAGE_LOAD_PC
+    next_ram_addr[5:4] <= Bm[1:0] ^ opcode[1:0];
+    wr_next_ram_addr   <= 1;
   endtask
 
   task incb();
-    Bl <= Bl + 4'h1;
+    next_ram_addr[3:0] <= Bl + 4'h1;
+    wr_next_ram_addr <= 1;
+
     skip_next_instr <= Bl == 4'hF;
   endtask
 
   task decb();
-    Bl <= Bl - 4'h1;
+    next_ram_addr[3:0] <= Bl - 4'h1;
+    wr_next_ram_addr <= 1;
+
     skip_next_instr <= Bl == 4'h0;
   endtask
 
@@ -306,12 +298,16 @@ module sm510 (
     stack_s <= stack_r;
   endtask
 
-  task push_stack();
+  task push_stack(reg [11:0] next_pc);
     stack_r <= stack_s;
-    stack_s <= pc;
+    stack_s <= next_pc;
   endtask
 
   // Decoder
+
+  // PC increment only changes Pl
+  // TODO: Is this correct, it doesn't match MAME?
+  wire [11:0] pc_inc = {Pu, Pm, Pl[0] == Pl[1], Pl[5:1]};
 
   always @(posedge clk) begin
     if (reset) begin
@@ -351,28 +347,42 @@ module sm510 (
       ram_wr_data <= 0;
 
       // Internal
+      last_Pl <= 0;
+
       last_opcode <= 0;
       last_temp_sbm <= 0;
     end else if (clk_en) begin
       reset_divider <= 0;
-      reset_gamma   <= 0;
+      reset_gamma <= 0;
+
+      ram_wr <= 0;
 
       if (stage == STAGE_LOAD_PC || stage == STAGE_PERF_2) begin
         // Increment PC
-        // PC needs to be incremented for the next instruction, which already happened for a two byte
-        // inst so we do it again
-        // TODO: Is this correct, it doesn't match MAME?
-        Pl <= {Pl[0] == Pl[1], Pl[5:1]};
+        // For two byte instr (STAGE_PERF_2), PC needs to be incremented for the next instruction,
+        // as we already consumed the incremented version, so we need to do it again
+        Pl <= pc_inc[5:0];
+
+        // Backup Pl, so operations that change parts of it (ATPL) don't use the incremented version
+        last_Pl <= Pl;
       end
 
       case (stage)
         STAGE_LOAD_PC: begin
           skip_next_instr  <= 0;
           skip_next_if_lax <= 0;
+          wr_next_ram_addr <= 0;
 
-          if (last_temp_sbm && ~temp_sbm) begin
-            // Clear Bm high to reset it after SBM
-            Bm[2] <= 0;
+          if (last_temp_sbm) begin
+            // SBM flag has been set and used for one instruction. Lower it
+            temp_sbm <= 0;
+          end
+
+          if (wr_next_ram_addr) begin
+            {Bm[1:0], Bl} <= next_ram_addr;
+          end else begin
+            // Update address for next time we write
+            next_ram_addr <= {Bm[1:0], Bl};
           end
         end
         STAGE_HALT: begin
@@ -380,10 +390,8 @@ module sm510 (
           {Pu, Pm, Pl} <= {2'b1, 4'b0, 6'b0};
         end
         STAGE_DECODE_PERF_1: begin
-          last_opcode <= opcode;
+          last_opcode   <= opcode;
           last_temp_sbm <= temp_sbm;
-
-          temp_sbm <= 0;
 
           casex (opcode)
             8'h00: begin
@@ -394,13 +402,15 @@ module sm510 (
               lcd_bp <= Acc[0];
             end
             8'h02: begin
-              // SBM. Set high bit of Bm high for next instruction only. Returns to 0 after
+              // SBM. Set high bit of Bm high for next instruction only. Returns to previous value after
+              // This is masked directly into the RAM input
               temp_sbm <= 1;
-              Bm[2] <= 1;
             end
             8'h03: begin
               // ATPL. Load Pl with Acc
-              Pl <= Acc;
+              // Since Pl was already incremented, we need to make sure the upper two bits
+              // haven't changed, so we restore the old value
+              Pl <= {last_Pl[5:4], Acc};
             end
             8'b0000_01XX: begin
               // 0x04-07: RM x. Zero RAM at bit indexed by immediate
@@ -480,11 +490,12 @@ module sm510 (
               skip_next_instr <= result[4] && opcode[3:0] != 4'hA;
             end
             8'h4X: begin
-              // LB x. Set lower Bm to immed. Set lower Bl to immed. Set upper Bl to XORed immed
-              reg xored;
-              xored = opcode[3] ^ opcode[2];
+              // LB x. Set lower Bm to immed. Set lower Bl to immed. Set upper Bl to ORed immed
+              // OR is questionable here according to docs, but other implementations (MAME) use OR
+              reg ored;
+              ored = opcode[3] | opcode[2];
 
-              Bl <= {xored, xored, opcode[3:2]};
+              Bl <= {ored, ored, opcode[3:2]};
               Bm[1:0] <= opcode[1:0];
             end
             // 0x50 unused
@@ -614,7 +625,7 @@ module sm510 (
             end
             8'b11XX_XXXX: begin
               // TMI x. Jumps to IDX table, and executes that instruction. Push PC + 1 into stack
-              push_stack();
+              push_stack(pc);
 
               {Pu, Pm, Pl} <= {2'b0, 4'b0, opcode[5:0]};
             end
@@ -629,12 +640,14 @@ module sm510 (
             end
             8'h7X: begin
               // This is weird and goes up to 0xA for some reason, so we need the nested checks
-              if (opcode[3:0] < 4'hB) begin
+              // Notice there is a gap where 0xB is not handled (in the actual CPU)
+              if (last_opcode[3:0] < 4'hB) begin
                 // TL xyz (2 byte). Long jump. Load PC with immediates
                 {Pu, Pm, Pl} <= {opcode[7:6], last_opcode[3:0], opcode[5:0]};
-              end else if (opcode[3:0] >= 4'hC) begin
+              end else if (last_opcode[3:0] >= 4'hC) begin
                 // TML xyz (2 byte). Long call. Push PC + 1 into stack registers. Load PC with immediates
-                push_stack();
+                // Need to push instruction after this one, so increment again
+                push_stack(pc_inc);
 
                 {Pu, Pm, Pl} <= {opcode[7:6], {2'b0, last_opcode[1:0]}, opcode[5:0]};
               end else begin

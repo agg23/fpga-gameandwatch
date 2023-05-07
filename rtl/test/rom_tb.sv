@@ -5,6 +5,8 @@ module rom_tb;
   reg clk = 0;
   reg [1:0] clk_div = 0;
 
+  wire clk_en = clk_div == 2'h3;
+
   reg reset = 0;
 
   wire [11:0] rom_addr;
@@ -13,7 +15,7 @@ module rom_tb;
   sm510 cpu_uut (
       .clk(clk),
 
-      .clk_en(clk_div == 2'h3),
+      .clk_en(clk_en),
 
       .reset(reset),
 
@@ -38,7 +40,9 @@ module rom_tb;
   reg [7:0] rom[4096];
 
   always @(posedge clk) begin
-    rom_data <= rom[rom_addr];
+    if (clk_en) begin
+      rom_data <= rom[rom_addr];
+    end
   end
 
   initial $readmemh("dkii.hex", rom);
@@ -52,6 +56,13 @@ module rom_tb;
   end
 
   initial begin
+    integer fd;
+    reg did_write;
+    reg [11:0] last_pc;
+    did_write = 0;
+
+    fd = $fopen("log.txt", "w");
+
     reset = 1;
 
     #20;
@@ -60,6 +71,20 @@ module rom_tb;
 
     forever begin
       #1;
+
+      if (~did_write && cpu_uut.stage == 1) begin
+        // STAGE_DECODE_PERF_1
+        did_write = 1;
+
+        $fwrite(fd, "pc=%h, acc=%h, carry=%d, bm=%h, bl=%h, shifter_w=%h\n", last_pc, cpu_uut.Acc,
+                cpu_uut.carry, cpu_uut.Bm, cpu_uut.Bl, cpu_uut.shifter_w);
+      end else if (cpu_uut.stage == 0) begin
+        // STAGE_LOAD_PC
+        did_write = 0;
+
+        // Store prev PC for use in tracing
+        last_pc   = cpu_uut.pc;
+      end
     end
   end
 
