@@ -7,8 +7,8 @@ module sm510 (
     input wire reset,
 
     // Data for external ROM
-    input  wire [ 7:0] opcode,
-    output wire [11:0] pc,
+    input  wire [ 7:0] rom_data,
+    output wire [11:0] rom_addr,
 
     // The K1-4 input pins
     input wire [3:0] input_k,
@@ -37,7 +37,8 @@ module sm510 (
   reg [3:0] Pm = 0;
   reg [5:0] Pl = 0;
 
-  assign pc = {Pu, Pm, Pl};
+  wire [11:0] pc = {Pu, Pm, Pl};
+  assign rom_addr = pc;
 
   reg [11:0] stack_s = 0;
   reg [11:0] stack_r = 0;
@@ -60,18 +61,35 @@ module sm510 (
   reg [7:0] shifter_w = 0;
   assign output_shifter_s = shifter_w;
 
+  // Control
+  reg skip_next_instr = 0;
+  // Skip next instruction only if next is LAX
+  reg skip_next_if_lax = 0;
+
+  reg temp_sbm = 0;
+
+  reg reset_divider = 0;
+  reg reset_gamma = 0;
+
+  reg halt = 0;
+  reg reset_halt = 0;
+
   ////////////////////////////////////////////////////////////////////////////////////////
   // Divider
 
   reg gamma = 0;
 
   reg [14:0] divider = 0;
+  // Temp value to wake from halt
   reg divider_1s_tick = 0;
   wire divider_64hz = divider[10];
 
   always @(posedge clk) begin
     if (reset) begin
+      gamma <= 0;
+
       divider <= 0;
+      divider_1s_tick <= 0;
     end else if (clk_en) begin
       divider_1s_tick <= 0;
 
@@ -98,31 +116,35 @@ module sm510 (
   // LCD Strobe
 
   // Select the active bit of display memory words in use
-  reg [3:0] lcd_h = 0;
+  // Comb
+  reg [3:0] lcd_h;
+  reg [1:0] lcd_h_index = 0;
 
   assign output_lcd_h = lcd_h;
 
   reg prev_divider_64hz = 0;
 
   always @(posedge clk) begin
-    if (~reset && clk_en) begin
+    if (reset) begin
+      lcd_h_index <= 0;
+    end else if (clk_en) begin
       prev_divider_64hz <= divider_64hz;
 
       if (divider_64hz && ~prev_divider_64hz) begin
         // Strobe LCD
-        if (lcd_h[3]) begin
-          // Wrap
-          lcd_h <= 4'h1;
-        end else begin
-          lcd_h <= {lcd_h[2:0], 1'b0};
-        end
+        lcd_h_index <= lcd_h_index + 2'b1;
       end
     end
   end
 
   always_comb begin
+    integer i;
     reg [3:0] temp;
     // TODO: This should also use Y somehow
+    for (i = 0; i < 4; i += 1) begin
+      lcd_h[i] = lcd_h_index == i;
+    end
+
     // Use same timing and position as H
     temp = lcd_h & segment_l;
 
@@ -151,7 +173,7 @@ module sm510 (
       .data(ram_wr_data),
       .q(ram_data),
 
-      .lcd_h(lcd_h),
+      .lcd_h(lcd_h_index),
       .segment_a(segment_a),
       .segment_b(segment_b)
   );
@@ -173,6 +195,34 @@ module sm510 (
   ////////////////////////////////////////////////////////////////////////////////////////
   // Stages
 
+  reg [7:0] stored_opcode = 0;
+
+  reg [11:0] prev_pc = 0;
+  reg use_stored_opcode = 0;
+
+  // The current opcode for this instruction
+  wire [7:0] opcode = use_stored_opcode ? stored_opcode : rom_data;
+
+  // This system ensures that the correct opcode stays around for the clk_en processes to use
+  // TODO: Improve this
+  // TODO: This doesn't actually work
+  always @(posedge clk) begin
+    if (pc != prev_pc) begin
+      use_stored_opcode <= 1;
+    end
+
+    if (clk_en) begin
+      prev_pc <= pc;
+      use_stored_opcode <= 0;
+      stored_opcode <= opcode;
+    end
+  end
+
+  // LBL xy | TL/TML xyz
+  wire is_two_bytes = opcode == 8'h5F || opcode[7:4] == 4'h7;
+  // TMI x
+  wire is_tmi = opcode[7:6] == 2'b11;
+
   localparam STAGE_LOAD_PC = 0;
   localparam STAGE_DECODE_PERF_1 = 1;
   localparam STAGE_PERF_2 = 2;
@@ -184,6 +234,8 @@ module sm510 (
 
   always @(posedge clk) begin
     if (reset) begin
+      // rom_data <= 0;
+
       stage <= STAGE_LOAD_PC;
     end else if (clk_en) begin
       case (stage)
@@ -198,7 +250,7 @@ module sm510 (
           end
         end
         STAGE_DECODE_PERF_1: begin
-          state <= STAGE_LOAD_PC;
+          stage <= STAGE_LOAD_PC;
 
           if (is_tmi) begin
             // TMI x. Load IDX data
@@ -219,19 +271,6 @@ module sm510 (
       endcase
     end
   end
-
-  // Control
-  reg skip_next_instr = 0;
-  // Skip next instruction only if next is LAX
-  reg skip_next_if_lax = 0;
-
-  reg temp_sbm = 0;
-
-  reg reset_divider = 0;
-  reg reset_gamma = 0;
-
-  reg halt = 0;
-  reg reset_halt = 0;
 
   // Internal
   reg [7:0] last_opcode = 0;
@@ -273,18 +312,58 @@ module sm510 (
   endtask
 
   // Decoder
-  // LBL xy | TL/TML xyz
-  wire is_two_bytes = opcode == 8'h5F || opcode[7:4] == 4'h7;
-  // TMI x
-  wire is_tmi = opcode[7:6] == 2'b11;
 
   always @(posedge clk) begin
     if (reset) begin
+      // Initial PC to 3_7_0
+      {Pu, Pm, Pl} <= {2'h3, 4'h7, 6'b0};
+
+      stack_s <= 0;
+      stack_r <= 0;
+
+      Acc <= 0;
+      carry <= 0;
+
       lcd_bp <= 0;
       lcd_bc <= 0;
+
+      segment_l <= 0;
+      segment_y <= 0;
+
+      shifter_w <= 0;
+
+      // Control
+      skip_next_instr <= 0;
+      skip_next_if_lax <= 0;
+
+      temp_sbm <= 0;
+
+      reset_divider <= 0;
+      reset_gamma <= 0;
+
+      halt <= 0;
+      reset_halt <= 0;
+
+      // RAM
+      {Bm, Bl} <= 7'h0;
+
+      ram_wr <= 0;
+      ram_wr_data <= 0;
+
+      // Internal
+      last_opcode <= 0;
+      last_temp_sbm <= 0;
     end else if (clk_en) begin
       reset_divider <= 0;
       reset_gamma   <= 0;
+
+      if (stage == STAGE_LOAD_PC || stage == STAGE_PERF_2) begin
+        // Increment PC
+        // PC needs to be incremented for the next instruction, which already happened for a two byte
+        // inst so we do it again
+        // TODO: Is this correct, it doesn't match MAME?
+        Pl <= {Pl[0] == Pl[1], Pl[5:1]};
+      end
 
       case (stage)
         STAGE_LOAD_PC: begin
@@ -295,10 +374,6 @@ module sm510 (
             // Clear Bm high to reset it after SBM
             Bm[2] <= 0;
           end
-
-          // Increment PC
-          // TODO: Is this correct, it doesn't match MAME?
-          Pl <= {Pl[0] == Pl[1], Pl[5:1]};
         end
         STAGE_HALT: begin
           // Load PC at 1_0_00
@@ -365,7 +440,7 @@ module sm510 (
 
               temp = ram_data;
               // Set bit at index
-              temp[opcode[1:0]] <= 1;
+              temp[opcode[1:0]] = 1;
 
               ram_wr_data <= temp;
               ram_wr <= 1;
