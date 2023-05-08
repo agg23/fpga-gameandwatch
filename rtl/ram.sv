@@ -18,8 +18,8 @@ module ram (
   reg [3:0] ram[128];
 
   // Cached versions of all segments, with 4 H values
-  reg [1:0] cached_segment_a[16];
-  reg [1:0] cached_segment_b[16];
+  reg [3:0] cached_segment_a[16];
+  reg [3:0] cached_segment_b[16];
 
   always_comb begin
     integer i;
@@ -39,8 +39,6 @@ module ram (
 
       if (addr >= 7'h60) begin
         // Display RAM segment
-        reg [15:0] temp;
-
         if (addr[4]) begin
           // Segment B
           cached_segment_b[addr[3:0]] <= data;

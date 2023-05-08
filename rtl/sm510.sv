@@ -188,7 +188,9 @@ module sm510 (
   // Halt
 
   always @(posedge clk) begin
-    if (clk_en) begin
+    if (reset) begin
+      reset_halt <= 0;
+    end else if (clk_en) begin
       reset_halt <= 0;
 
       if (divider_1s_tick || input_k != 0) begin
@@ -338,7 +340,6 @@ module sm510 (
       reset_gamma <= 0;
 
       halt <= 0;
-      reset_halt <= 0;
 
       // RAM
       {Bm, Bl} <= 7'h0;
@@ -418,7 +419,7 @@ module sm510 (
 
               temp = ram_data;
               // Zero bit at index
-              temp[opcode[1:0]] <= 0;
+              temp[opcode[1:0]] = 0;
 
               ram_wr_data <= temp;
               ram_wr <= 1;
