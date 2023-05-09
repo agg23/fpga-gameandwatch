@@ -28,8 +28,9 @@ module rom_tb;
 
       .input_k(input_k),
 
-      .input_ba  (1'b0),
-      .input_beta(1'b0),
+      // MAME defaults to these being wired high
+      .input_ba  (1'b1),
+      .input_beta(1'b1),
 
       .output_shifter_s(shifter_s)
   );
@@ -52,12 +53,17 @@ module rom_tb;
   end
 
   reg press_game_a = 0;
+  reg press_game_b = 0;
+  reg press_dpad_up = 0;
 
   always_comb begin
     input_k = 0;
 
-    if (shifter_s[2]) begin
+    if (shifter_s[1]) begin
+      input_k |= press_dpad_up ? 4'h2 : 0;
+    end else if (shifter_s[2]) begin
       input_k |= press_game_a ? 4'h4 : 0;
+      input_k |= press_game_b ? 4'h2 : 0;
     end
   end
 
@@ -109,6 +115,7 @@ module rom_tb;
         did_write = 1;
 
         log();
+        step_count += 1;
       end else if (cpu_uut.stage == 0) begin
         // STAGE_LOAD_PC
         did_write = 0;
@@ -117,14 +124,39 @@ module rom_tb;
         last_pc   = cpu_uut.pc;
       end
 
-      if (step_count == 20_000) begin
+      if (step_count == 32'h4E20) begin
         // Enable Game A
         press_game_a = 1;
-      end else if (step_count == 40_000) begin
+      end else if (step_count == 32'h4E20 + 32'h400) begin
         // Disable Game A
         press_game_a = 0;
-      end else if (step_count == 100_000) begin
+      end else if (step_count == 32'h4E20 + 32'h400 + 32'h4E20) begin
+        // Press up
+        press_dpad_up = 1;
+      end else if (step_count == 32'h4E20 + 32'h400 + 32'h4E20 + 32'h400) begin
+        // Stop press up
+        press_dpad_up = 0;
+      end else if (step_count == 32'h4E20 + 32'h400 + 32'h4E20 + 32'h400 + 32'h20000) begin
+        // Press up
+        press_dpad_up = 1;
+      end else if (step_count == 32'h4E20 + 32'h400 + 32'h4E20 + 32'h400 + 32'h20000 + 32'h400) begin
+        // Stop press up
+        press_dpad_up = 0;
+      end else if (step_count == 32'h4E20 + 32'h400 + 32'h4E20 + 32'h400 + 32'h20000 + 32'h400 + 32'h10000) begin
+        // Press up
+        press_dpad_up = 1;
+      end else if (step_count == 32'h4E20 + 32'h400 + 32'h4E20 + 32'h400 + 32'h20000 + 32'h400 + 32'h10000 + 32'h400) begin
+        // Stop press up
+        press_dpad_up = 0;
+      end else if (step_count == 32'h4E20 + 32'h400 + 32'h4E20 + 32'h400 + 32'h20000 + 32'h400 + 32'h10000 + 32'h400 + 32'hD000) begin
+        // Press Game B
+        press_game_b = 1;
+      end else if (step_count == 32'h4E20 + 32'h400 + 32'h4E20 + 32'h400 + 32'h20000 + 32'h400 + 32'h10000 + 32'h400 + 32'hD000 + 32'h400) begin
+        // Stop press Game B
+        press_game_b = 0;
+      end else if (step_count == 32'h4E20 + 32'h400 + 32'h4E20 + 32'h400 + 32'h20000 + 32'h400 + 32'h10000 + 32'h400 + 32'hD000 + 32'h400 + 32'h10000) begin
         $display("Done");
+        $finish();
       end
     end
   end

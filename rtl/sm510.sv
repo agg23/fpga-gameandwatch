@@ -396,6 +396,10 @@ module sm510 (
         STAGE_HALT: begin
           // Load PC at 1_0_00
           {Pu, Pm, Pl} <= {2'b1, 4'b0, 6'b0};
+
+          if (reset_halt) begin
+            halt <= 0;
+          end
         end
         STAGE_DECODE_PERF_1: begin
           last_opcode   <= opcode;
@@ -450,7 +454,7 @@ module sm510 (
             8'h0B: begin
               // EXBLA. Swap Acc and Bl
               Acc <= Bl;
-              Bl  <= Acc[2:0];
+              Bl  <= Acc;
             end
             8'b0000_11XX: begin
               // 0x0C-0F: SM x. Set RAM at bit indexed by immediate
@@ -509,7 +513,7 @@ module sm510 (
             // 0x50 unused
             8'h51: begin
               // TB. Skip next instruction if Beta is 1
-              skip_next_instr <= input_beta == 1;
+              skip_next_instr <= input_beta;
             end
             8'h52: begin
               // TC. Skip next instruction if C = 0

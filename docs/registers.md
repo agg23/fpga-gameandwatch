@@ -48,8 +48,8 @@ Hardware registers for maintaining stack depth and values. `S` is the first leve
 ## Inputs
 
 * `K` - 4 bits. Arbitrary 4 bits
-* `BA` - 1 bit. Arbitrary 1 bit
-* `BETA` - 1 bit. Arbitrary 1 bit
+* `BA` - 1 bit. Arbitrary 1 bit - MAME defaults to this being high
+* `BETA` - 1 bit. Arbitrary 1 bit - MAME defaults to this being high
 
 ## Outputs
 
