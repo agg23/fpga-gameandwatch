@@ -1,7 +1,15 @@
 Debug string
 
 ```
-trace output.log,,noloop,{tracelog "pc=%03x, acc=%x, carry=%d, bm=%x, bl=%x, shifter_w=%02x:    ", pc, acc, c, bm, bl, w}
+trace output.log,,noloop,{tracelog "pc=%03x, acc=%x, carry=%d, bm=%x, bl=%x, shifter_w=%02x, gamma=%x, div=%04x:    ", pc, acc, c, bm, bl, w, gamma, main_div}
+```
+
+Step 20000 instructions before halting for input. Values are in hex
+```
+step 4e20
+prime_in0 1
+step 4e20
+prime_in0 0
 ```
 
 MAME can only output flags marked for debugging somehow, seen in the left side of the debugger

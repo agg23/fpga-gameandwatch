@@ -103,6 +103,8 @@ module sm510 (
       end
 
       if (reset_divider) begin
+        // TODO: Remove. This is to match MAME testing
+        // divider <= 2;
         divider <= 0;
       end else begin
         // Increment
@@ -212,10 +214,13 @@ module sm510 (
 
   localparam STAGE_LOAD_PC = 0;
   localparam STAGE_DECODE_PERF_1 = 1;
-  localparam STAGE_PERF_2 = 2;
-  localparam STAGE_IDX_FETCH = 3;
-  localparam STAGE_IDX_PERF = 4;
-  localparam STAGE_HALT = 5;
+  localparam STAGE_LOAD_2 = 2;
+  localparam STAGE_PERF_3 = 3;
+  // TODO: Combine both sets of stages
+  localparam STAGE_IDX_FETCH = 4;
+  localparam STAGE_IDX_PERF = 5;
+  localparam STAGE_HALT = 6;
+  localparam STAGE_SKIP = 7;
 
   reg [2:0] stage = STAGE_LOAD_PC;
 
@@ -231,7 +236,7 @@ module sm510 (
             stage <= STAGE_HALT;
           end else if (skip_next_instr || skip_next_if_lax && opcode[7:4] == 4'h2) begin
             // Skip
-            stage <= STAGE_LOAD_PC;
+            stage <= STAGE_SKIP;
           end else begin
             stage <= STAGE_DECODE_PERF_1;
           end
@@ -244,10 +249,11 @@ module sm510 (
             stage <= STAGE_IDX_FETCH;
           end else if (is_two_bytes) begin
             // Instruction takes two bytes
-            stage <= STAGE_PERF_2;
+            stage <= STAGE_LOAD_2;
           end
         end
-        STAGE_PERF_2: stage <= STAGE_LOAD_PC;
+        STAGE_LOAD_2: stage <= STAGE_PERF_3;
+        STAGE_PERF_3: stage <= STAGE_LOAD_PC;
         STAGE_IDX_FETCH: stage <= STAGE_IDX_PERF;
         STAGE_IDX_PERF: stage <= STAGE_LOAD_PC;
         STAGE_HALT: begin
@@ -255,6 +261,7 @@ module sm510 (
             stage <= STAGE_LOAD_PC;
           end
         end
+        STAGE_SKIP: stage <= STAGE_LOAD_PC;
       endcase
     end
   end
@@ -358,9 +365,9 @@ module sm510 (
 
       ram_wr <= 0;
 
-      if (stage == STAGE_LOAD_PC || stage == STAGE_PERF_2) begin
+      if (stage == STAGE_LOAD_PC || stage == STAGE_PERF_3) begin
         // Increment PC
-        // For two byte instr (STAGE_PERF_2), PC needs to be incremented for the next instruction,
+        // For two byte instr (STAGE_PERF_3), PC needs to be incremented for the next instruction,
         // as we already consumed the incremented version, so we need to do it again
         Pl <= pc_inc[5:0];
 
@@ -434,7 +441,7 @@ module sm510 (
               result = Acc + ram_data + carry;
 
               {carry, Acc} <= result;
-              skip_next_instr <= carry;
+              skip_next_instr <= result[4];
             end
             8'h0A: begin
               // COMA. NOT Acc
@@ -443,7 +450,7 @@ module sm510 (
             8'h0B: begin
               // EXBLA. Swap Acc and Bl
               Acc <= Bl;
-              Bl  <= Acc;
+              Bl  <= Acc[2:0];
             end
             8'b0000_11XX: begin
               // 0x0C-0F: SM x. Set RAM at bit indexed by immediate
@@ -625,14 +632,14 @@ module sm510 (
               Pl <= opcode[5:0];
             end
             8'b11XX_XXXX: begin
-              // TMI x. Jumps to IDX table, and executes that instruction. Push PC + 1 into stack
+              // TM x. Jumps to IDX table, and executes that instruction. Push PC + 1 into stack
               push_stack(pc);
 
               {Pu, Pm, Pl} <= {2'b0, 4'b0, opcode[5:0]};
             end
           endcase
         end
-        STAGE_PERF_2: begin
+        STAGE_PERF_3: begin
           casex (last_opcode)
             8'h5F: begin
               // LBL xy (2 byte). Immed is only second byte. Set Bm to high 3 bits of immed, and Bl to low 4 immed. Highest bit is unused

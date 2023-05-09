@@ -11,7 +11,9 @@
 
 ## Timing
 
-Docs list oscillator at 32.768kHz and typical 61us instruction timing, which implies two cycles. Assuming two byte instructions, and particularly `TMI` to `IDX` is multiple cycles
+Docs list oscillator at 32.768kHz and typical 61us instruction timing, which implies two cycles. Assuming two byte instructions, and particularly `TMI` to `IDX` is multiple cycles. Skipping an instruction takes two cycles \[1]
+
+1. MAME uses 2 cycle and 4 cycle instructions only. We've followed their lead, even though the non-`TMI` two byte instructions can be done in 3
 
 ## 1. RAM Address Instructions
 
@@ -29,16 +31,16 @@ Notes:
 
 ## 2. ROM Address Instructions
 
-| Mnemonic                | Opcode                  | Operation                                                            | Description                                                                                               |
-| ----------------------- | ----------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `ATPL`                  | `0x03`                  | `Pl[3:0] <- Acc`                                                     | Load PC low bits with Acc                                                                                 |
-| `RTN0`                  | `0x6E`                  | `{Pu, Pm, Pl} <- {Su, Sm, Sl} <- {Ru, Rm, Rl}`                       | Pop stack. Move `S` into `PC`, and `R` into `S`                                                           |
-| `RTN1`                  | `0x6F`                  | `{Pu, Pm, Pl} <- {Su, Sm, Sl} <- {Ru, Rm, Rl}`                       | Pop stack. Move `S` into `PC`, and `R` into `S`. Skip next instruction                                    |
-| `TL xyz` (2 byte)       | `0x70-7A` X `0x00-FE` Y | `{Pu, Pm, Pl} <- {y[7:6], x[3:0], y[5:0]}`                           | Long jump. Load `PC` with immediates as shown                                                             |
-| `TML xyz` (2 byte)      | `0x7C-7F` X `0x00-FE` Y | `R <- S <- PC + 1, Pu <- y[7:6], Pm <- {2'b0, x[1:0]}, Pl <- y[5:0]` | Long call. Push `PC + 2` into stack registers. Load PC with immediates as shown \[1]                      |
-| `TMI x` (psuedo 2 byte) | `0xC0-FE`               | `R <- S <- PC + 1, {Pu, Pm, Pl} <- {2'b0, 4'b0, x[5:0]}`             | Jumps to IDX table, and executes (see `IDX` below). Push `PC + 1` into stack registers. Jump to zero page |
-| `IDX yz`                | `0x00-FE`               | `{Pu, Pm, Pl} <- {y[7:6], 4'h4, x[5:0]}, `                           | Not a real opcode. Always preceeded by `TMI`. Loads immediate into PC                                     |
-| `T xy`                  | `0x80-BF`               | `Pl <- x[5:0]`                                                       | Short jump, within page. Set `Pl` to immediate                                                            |
+| Mnemonic               | Opcode                  | Operation                                                            | Description                                                                                               |
+| ---------------------- | ----------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `ATPL`                 | `0x03`                  | `Pl[3:0] <- Acc`                                                     | Load PC low bits with Acc                                                                                 |
+| `RTN0`                 | `0x6E`                  | `{Pu, Pm, Pl} <- {Su, Sm, Sl} <- {Ru, Rm, Rl}`                       | Pop stack. Move `S` into `PC`, and `R` into `S`                                                           |
+| `RTN1`                 | `0x6F`                  | `{Pu, Pm, Pl} <- {Su, Sm, Sl} <- {Ru, Rm, Rl}`                       | Pop stack. Move `S` into `PC`, and `R` into `S`. Skip next instruction                                    |
+| `TL xyz` (2 byte)      | `0x70-7A` X `0x00-FE` Y | `{Pu, Pm, Pl} <- {y[7:6], x[3:0], y[5:0]}`                           | Long jump. Load `PC` with immediates as shown                                                             |
+| `TML xyz` (2 byte)     | `0x7C-7F` X `0x00-FE` Y | `R <- S <- PC + 1, Pu <- y[7:6], Pm <- {2'b0, x[1:0]}, Pl <- y[5:0]` | Long call. Push `PC + 2` into stack registers. Load PC with immediates as shown \[1]                      |
+| `TM x` (psuedo 2 byte) | `0xC0-FE`               | `R <- S <- PC + 1, {Pu, Pm, Pl} <- {2'b0, 4'b0, x[5:0]}`             | Jumps to IDX table, and executes (see `IDX` below). Push `PC + 1` into stack registers. Jump to zero page |
+| `IDX yz`               | `0x00-FE`               | `{Pu, Pm, Pl} <- {y[7:6], 4'h4, x[5:0]}, `                           | Not a real opcode. Always preceeded by `TMI`. Loads immediate into PC                                     |
+| `T xy`                 | `0x80-BF`               | `Pl <- x[5:0]`                                                       | Short jump, within page. Set `Pl` to immediate                                                            |
 
 Note
 1. This pushes PC + 2, because PC + 1 is part of the contents of the instruction

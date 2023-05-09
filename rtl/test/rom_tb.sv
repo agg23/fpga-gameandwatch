@@ -12,6 +12,10 @@ module rom_tb;
   wire [11:0] rom_addr;
   reg [7:0] rom_data = 0;
 
+  // Comb
+  reg [3:0] input_k;
+  wire [7:0] shifter_s;
+
   sm510 cpu_uut (
       .clk(clk),
 
@@ -22,10 +26,12 @@ module rom_tb;
       .rom_data(rom_data),
       .rom_addr(rom_addr),
 
-      .input_k(4'b0),
+      .input_k(input_k),
 
       .input_ba  (1'b0),
-      .input_beta(1'b0)
+      .input_beta(1'b0),
+
+      .output_shifter_s(shifter_s)
   );
 
   always begin
@@ -45,6 +51,16 @@ module rom_tb;
     end
   end
 
+  reg press_game_a = 0;
+
+  always_comb begin
+    input_k = 0;
+
+    if (shifter_s[2]) begin
+      input_k |= press_game_a ? 4'h4 : 0;
+    end
+  end
+
   initial $readmemh("dkii.hex", rom);
 
   initial begin
@@ -55,11 +71,21 @@ module rom_tb;
     end
   end
 
+  reg [11:0] last_pc;
+  integer fd;
+  integer step_count;
+
+  task log();
+    $fwrite(fd, "pc=%h, acc=%h, carry=%d, bm=%h, bl=%h, shifter_w=%h, gamma=%0d, div=%h\n",
+            last_pc, cpu_uut.Acc, cpu_uut.carry, cpu_uut.Bm, cpu_uut.Bl, cpu_uut.shifter_w,
+            cpu_uut.gamma, cpu_uut.divider);
+  endtask
+
   initial begin
-    integer fd;
     reg did_write;
-    reg [11:0] last_pc;
     did_write = 0;
+
+    step_count = 0;
 
     fd = $fopen("log.txt", "w");
 
@@ -76,14 +102,29 @@ module rom_tb;
         // STAGE_DECODE_PERF_1
         did_write = 1;
 
-        $fwrite(fd, "pc=%h, acc=%h, carry=%d, bm=%h, bl=%h, shifter_w=%h\n", last_pc, cpu_uut.Acc,
-                cpu_uut.carry, cpu_uut.Bm, cpu_uut.Bl, cpu_uut.shifter_w);
+        log();
+        step_count += 1;
+      end else if (~did_write && cpu_uut.stage == 7 && cpu_uut.opcode[7:4] == 4'h2) begin
+        // Log skipped LAX in order to match MAME
+        did_write = 1;
+
+        log();
       end else if (cpu_uut.stage == 0) begin
         // STAGE_LOAD_PC
         did_write = 0;
 
         // Store prev PC for use in tracing
         last_pc   = cpu_uut.pc;
+      end
+
+      if (step_count == 20_000) begin
+        // Enable Game A
+        press_game_a = 1;
+      end else if (step_count == 40_000) begin
+        // Disable Game A
+        press_game_a = 0;
+      end else if (step_count == 100_000) begin
+        $display("Done");
       end
     end
   end
