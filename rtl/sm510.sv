@@ -211,6 +211,8 @@ module sm510 (
   wire is_two_bytes = opcode == 8'h5F || opcode[7:4] == 4'h7;
   // TMI x
   wire is_tmi = opcode[7:6] == 2'b11;
+  // LAX x
+  wire is_lax = opcode[7:4] == 4'h2;
 
   localparam STAGE_LOAD_PC = 0;
   localparam STAGE_DECODE_PERF_1 = 1;
@@ -234,7 +236,7 @@ module sm510 (
         STAGE_LOAD_PC: begin
           if (halt) begin
             stage <= STAGE_HALT;
-          end else if (skip_next_instr || skip_next_if_lax && opcode[7:4] == 4'h2) begin
+          end else if (skip_next_instr || skip_next_if_lax && is_lax) begin
             // Skip
             stage <= STAGE_SKIP;
           end else begin
@@ -378,7 +380,8 @@ module sm510 (
       case (stage)
         STAGE_LOAD_PC: begin
           skip_next_instr  <= 0;
-          skip_next_if_lax <= 0;
+          // Continue skipping if previously skipped LAX, and still LAX
+          skip_next_if_lax <= skip_next_if_lax && is_lax;
           wr_next_ram_addr <= 0;
 
           if (last_temp_sbm) begin

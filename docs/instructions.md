@@ -47,16 +47,16 @@ Note
 
 ## 3. Data Transfer Instructions
 
-| Mnemonic | Opcode    | Operation                                                                               | Description                                                                                                                                |
-| -------- | --------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `EXC x`  | `0x10-13` | `Acc <-> M, Bm[1:0] <- Bm[1:0] ^ x[1:0]`                                                | Swap Acc and RAM value. XOR `Bm` with immed                                                                                                |
-| `BDC`    | `0x6D`    | `BC <- C`                                                                               | Set LCD power. Display is on if `C` is low                                                                                                 |
+| Mnemonic | Opcode    | Operation                                                                               | Description                                                                                                                               |
+| -------- | --------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `EXC x`  | `0x10-13` | `Acc <-> M, Bm[1:0] <- Bm[1:0] ^ x[1:0]`                                                | Swap Acc and RAM value. XOR `Bm` with immed                                                                                               |
+| `BDC`    | `0x6D`    | `BC <- C`                                                                               | Set LCD power. Display is on if `C` is low                                                                                                |
 | `EXCI x` | `0x14-17` | `Acc <-> M, Bm[1:0] <- Bm[1:0] ^ x[1:0]`. Skip next instr if `Bl = 0xF`. `Bl <- Bl + 1` | Swap Acc and RAM value. XOR `Bm` with immed. Increment `Bl`. If original `Bl` was `0xF`, skip next instruction. Combines `EXC` and `INCB` |
 | `EXCD x` | `0x1C-1F` | `Acc <-> M, Bm[1:0] <- Bm[1:0] ^ x[1:0]`. Skip next instr if `Bl = 0x0`. `Bl <- Bl - 1` | Swap Acc and RAM value. XOR `Bm` with immed. Decrement `Bl`. If original `Bl` was `0x0`, skip next instruction. Combines `EXC` and `DECB` |
-| `LDA x`  | `0x18-1B` | `Acc <- M, Bm[1:0] <- Bm[1:0] ^ x[1:0]`                                                 | Load Acc with RAM value. XOR `Bm` with immed                                                                                               |
-| `LAX x`  | `0x20-2F` | `Acc <- x[3:0]`. Skip next instr if also LAX                                            | Load Acc with immed. If following instruction is `LAX`, skip it                                                                            |
-| `WR`     | `0x62`    | `W[7] <- W[6] <- ... <- W[0] <- 0`                                                      | Shift 0 into `W`                                                                                                                           |
-| `WS`     | `0x63`    | `W[7] <- W[6] <- ... <- W[0] <- 1`                                                      | Shift 1 into `W`                                                                                                                           |
+| `LDA x`  | `0x18-1B` | `Acc <- M, Bm[1:0] <- Bm[1:0] ^ x[1:0]`                                                 | Load Acc with RAM value. XOR `Bm` with immed                                                                                              |
+| `LAX x`  | `0x20-2F` | `Acc <- x[3:0]`. Skip next instr if also LAX                                            | Load Acc with immed. If following instruction is `LAX`, skip it. Continue skipping instruction until all of the `LAX` are passed          |
+| `WR`     | `0x62`    | `W[7] <- W[6] <- ... <- W[0] <- 0`                                                      | Shift 0 into `W`                                                                                                                          |
+| `WS`     | `0x63`    | `W[7] <- W[6] <- ... <- W[0] <- 1`                                                      | Shift 1 into `W`                                                                                                                          |
 
 ## 4. I/O Instructions
 
