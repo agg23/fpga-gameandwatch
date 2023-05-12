@@ -1,6 +1,8 @@
-sim
+sim/
 rtl/test/verilator/assets/
 rtl/test/verilator/target/
+support/assets/
+support/target/
 
 # Quartus directories and files
 db
