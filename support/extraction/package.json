@@ -1,0 +1,16 @@
+{
+  "name": "fpga-gnw-extraction",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "foo": "ts-node src/extract.ts"
+  },
+  "author": "agg23",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.15.5",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4"
+  }
+}
