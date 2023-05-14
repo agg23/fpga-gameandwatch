@@ -1,4 +1,10 @@
-import { Action, NamedAction, PlatformPortMapping, Port } from "./types";
+import {
+  Action,
+  NamedAction,
+  PlatformPortMapping,
+  Port,
+  UndfAction,
+} from "./types";
 
 const PORT_START_REGEX = /^\s*PORT_START\("(.*)"\)/;
 
@@ -135,6 +141,95 @@ export const parseInputs = (
     ports: filteredPorts,
     include: portInclude,
   };
+};
+
+export const collapseInputs = (ports: {
+  [name: string]: PlatformPortMapping;
+}): {
+  [name: string]: PlatformPortMapping;
+} => {
+  const collapsedPorts: {
+    [name: string]: PlatformPortMapping;
+  } = {};
+
+  for (const [deviceName, port] of Object.entries(ports)) {
+    if (port.include) {
+      const flatPortMap: {
+        [id: string]: Port;
+      } = {};
+
+      for (const innerPort of port.ports) {
+        const name = nameInnerPort(innerPort);
+
+        flatPortMap[name] = innerPort;
+      }
+
+      const includedPort = ports[port.include];
+
+      if (!includedPort) {
+        console.log(
+          `Could not find included port ${port.include} from device ${deviceName}`
+        );
+        continue;
+      }
+
+      if (includedPort.include) {
+        console.log(
+          `Included port ${port.include} from device ${deviceName} includes another port`
+        );
+      }
+
+      for (const innerPort of includedPort.ports) {
+        const name = nameInnerPort(innerPort);
+
+        const existingPort = flatPortMap[name];
+        if (existingPort) {
+          // Both definitions have this port. We need to merge
+          if (innerPort.type === "s" && existingPort.type === "s") {
+            // Second check to satisfy TS
+            for (let i = 0; i < 3; i++) {
+              const newBit = innerPort.bitmap[i];
+              const existingBit = existingPort.bitmap[i];
+
+              if (existingBit) {
+                existingPort.bitmap[i] = existingBit;
+              } else {
+                existingPort.bitmap[i] = newBit;
+              }
+            }
+          } else {
+            if (
+              innerPort.type !== "s" &&
+              existingPort.type !== "s" &&
+              !existingPort.bit
+            ) {
+              existingPort.bit = innerPort.bit;
+            }
+          }
+        } else {
+          // Def only on parent, copy it over
+          flatPortMap[name] = innerPort;
+        }
+      }
+
+      collapsedPorts[deviceName] = {
+        ...port,
+        ports: [...Object.values(flatPortMap)],
+      };
+    } else {
+      collapsedPorts[deviceName] = port;
+    }
+  }
+
+  return collapsedPorts;
+};
+
+const nameInnerPort = (port: Port): string => {
+  if (port.type === "s") {
+    return `s${port.index}`;
+  }
+
+  return port.type;
 };
 
 const parseButton = (button: string): Action | undefined => {

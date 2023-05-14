@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import { createPreset } from "./mame/presets";
 import { PlatformPortMapping, PlatformSpecification } from "./mame/types";
-import { parseInputs } from "./mame/inputs";
+import { collapseInputs, parseInputs } from "./mame/inputs";
 
 const PORT_SETTINGS_REGEX =
   /INPUT_PORTS_START\(\s+(.*)\s+\)([\s\S]*?)INPUT_PORTS_END/;
@@ -57,7 +57,7 @@ const run = () => {
   // }`;
 
   // Get all port bodies
-  const ports: {
+  let ports: {
     [name: string]: PlatformPortMapping;
   } = {};
   const globalNames = new RegExp(PORT_SETTINGS_REGEX, "g");
@@ -72,6 +72,8 @@ const run = () => {
     const portMap = parseInputs(body, name);
     ports[name] = portMap;
   }
+
+  ports = collapseInputs(ports);
 
   const consoles: {
     [name: string]: PlatformSpecification;
