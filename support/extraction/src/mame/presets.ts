@@ -178,19 +178,19 @@ const standard_dual_vertical = (
 /* Standard */
 
 const sm5a_common = (width: number, height: number): PresetDefinition =>
-  standard_single(CPUType.sm5a, width, height);
+  standard_single("sm5a", width, height);
 
 const kb1013vk12_common = (width: number, height: number): PresetDefinition =>
-  standard_single(CPUType.kb1013vk12, width, height);
+  standard_single("kb1013vk12", width, height);
 
 const sm510_common = (width: number, height: number): PresetDefinition =>
-  standard_single(CPUType.sm510, width, height);
+  standard_single("sm510", width, height);
 
 const sm511_common = (width: number, height: number): PresetDefinition =>
-  standard_single(CPUType.sm511, width, height);
+  standard_single("sm511", width, height);
 
 const sm530_common = (width: number, height: number): PresetDefinition =>
-  standard_single(CPUType.sm530, width, height);
+  standard_single("sm530", width, height);
 
 /* Multi-screen */
 
@@ -201,7 +201,7 @@ const sm510_dualh = (
   rightHeight: number
 ): PresetDefinition =>
   standard_dual_horiztonal(
-    CPUType.sm510,
+    "sm510",
     leftWidth,
     leftHeight,
     rightWidth,
@@ -215,7 +215,7 @@ const sm510_dualv = (
   bottomHeight: number
 ): PresetDefinition =>
   standard_dual_vertical(
-    CPUType.sm510,
+    "sm510",
     topWidth,
     topHeight,
     bottomWidth,
@@ -229,7 +229,7 @@ const sm511_dualv = (
   bottomHeight: number
 ): PresetDefinition =>
   standard_dual_vertical(
-    CPUType.sm511,
+    "sm511",
     topWidth,
     topHeight,
     bottomWidth,
@@ -243,7 +243,7 @@ const sm512_dualv = (
   bottomHeight: number
 ): PresetDefinition =>
   standard_dual_vertical(
-    CPUType.sm512,
+    "sm512",
     topWidth,
     topHeight,
     bottomWidth,
@@ -253,10 +253,10 @@ const sm512_dualv = (
 /* Tiger */
 
 const sm510_tiger = (width: number, height: number): PresetDefinition =>
-  standard_single(CPUType.sm510_tiger, width, height);
+  standard_single("sm510_tiger", width, height);
 
 const sm511_tiger1bit = (width: number, height: number): PresetDefinition =>
-  standard_single(CPUType.sm511_tiger1bit, width, height);
+  standard_single("sm511_tiger1bit", width, height);
 
 const sm511_tiger2bit = (width: number, height: number): PresetDefinition =>
-  standard_single(CPUType.sm511_tiger2bit, width, height);
+  standard_single("sm511_tiger2bit", width, height);

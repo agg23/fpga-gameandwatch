@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import { createPreset } from "./mame/presets";
-import { ConsoleSpecification } from "./mame/types";
+import { PlatformPortMapping, PlatformSpecification } from "./mame/types";
+import { parseInputs } from "./mame/inputs";
 
 const PORT_SETTINGS_REGEX =
   /INPUT_PORTS_START\(\s+(.*)\s+\)([\s\S]*?)INPUT_PORTS_END/;
@@ -16,16 +17,6 @@ const INSTANCE_CONSTRUCTOR_REGEX_BUILDER = (
   new RegExp(
     `void\\s+${stateName}::${deviceName}\\(\\s*machine_config\\s+&\\s*config\\s*\\)\\s*{\\s*([\\s\\S]*?)\\s+}`
   );
-
-// TODO: Unused?
-const EXTRACT_BODY_REGEX = /class\s+.*_state\s+:[\s\S]*?ROM_END/g;
-
-// interface DeviceParser {
-//   body: string;
-//   class
-// }
-
-const parseDevice = (device: string) => {};
 
 // This tool is constructed out of ad-hoc regex instead of being a clear "select block of a single platform and parse"
 // because the MAME code isn't really laid out in a nice way to do that. So we do the next best thing
@@ -67,7 +58,7 @@ const run = () => {
 
   // Get all port bodies
   const ports: {
-    [name: string]: string;
+    [name: string]: PlatformPortMapping;
   } = {};
   const globalNames = new RegExp(PORT_SETTINGS_REGEX, "g");
   for (const match of file.matchAll(globalNames)) {
@@ -78,12 +69,12 @@ const run = () => {
       return;
     }
 
-    // TODO: Parse body
-    ports[name] = body;
+    const portMap = parseInputs(body, name);
+    ports[name] = portMap;
   }
 
   const consoles: {
-    [name: string]: ConsoleSpecification;
+    [name: string]: PlatformSpecification;
   } = {};
 
   // TODO: These names are very messy
@@ -95,16 +86,28 @@ const run = () => {
       subdevices.push(match[1]);
     }
 
+    const stateName = className.endsWith("_state")
+      ? className.slice(0, -6)
+      : className;
+
     // Find the actual constructors
     for (const device of subdevices) {
-      if (!(device in ports)) {
-        // TODO: Use class name as input device
-        console.log(`Constructor without an input ${device}`);
+      // Setup inputs
+      let portMap: PlatformPortMapping | undefined;
+      if (device in ports) {
+        portMap = ports[device];
+      } else if (stateName in ports) {
+        portMap = ports[stateName];
+      } else {
+        console.log(
+          `Constructor without an input ${device}, in class ${className}`
+        );
       }
 
-      const regex = INSTANCE_CONSTRUCTOR_REGEX_BUILDER(className, device);
+      // Find constructors
+      let regex = INSTANCE_CONSTRUCTOR_REGEX_BUILDER(className, device);
 
-      const match = file.match(regex);
+      let match = file.match(regex);
 
       if (!match) {
         console.log(`Could not find constructor for device ${device}`);
@@ -114,11 +117,17 @@ const run = () => {
       const preset = createPreset(match[1], device);
 
       if (!preset) {
+        console.log(`Could not find preset for device ${device}`);
         continue;
       }
 
       consoles[device] = {
         device: preset,
+        portMap: !!portMap
+          ? portMap
+          : {
+              ports: [],
+            },
       };
     }
   }
