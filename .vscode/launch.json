@@ -1,0 +1,26 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Extract",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/support/extraction/src/extract.ts",
+      "preLaunchTask": "tsc: build - support/extraction/tsconfig.json",
+      "outFiles": ["${workspaceFolder}/**/*.js"]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug",
+      "program": "${workspaceFolder}/support/target/debug/fpga-gnw-romgenerator",
+      "args": [],
+      "cwd": "${workspaceFolder}/support",
+      "sourceLanguages": ["rust"]
+    }
+  ]
+}

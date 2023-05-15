@@ -7,5 +7,11 @@ edition = "2021"
 
 [dependencies]
 guard = "0.5.1"
+image = { version = "0.24.6", features = ["png"] }
 resvg = "0.32.0"
+serde = { version = "1.0", features = ["derive"] }
+serde-xml-rs = "0.6.0"
+serde_json = "1.0.96"
 svg = "0.13.1"
+tiny-skia-path = "0.9"
+zip = { version = "0.6", features = ["deflate"], default-features = false }
