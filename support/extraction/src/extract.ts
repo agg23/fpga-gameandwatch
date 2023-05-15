@@ -22,39 +22,6 @@ const INSTANCE_CONSTRUCTOR_REGEX_BUILDER = (
 // because the MAME code isn't really laid out in a nice way to do that. So we do the next best thing
 const run = () => {
   const file = readFileSync("/Users/adam/Downloads/hh_sm510.cpp", "utf8");
-  //   const file = `static INPUT_PORTS_START( gnw_mario )
-  // 	PORT_START("IN.0") // S1
-  // 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_JOYSTICKRIGHT_DOWN ) PORT_CHANGED_CB(input_changed)
-  // 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_JOYSTICKRIGHT_UP ) PORT_CHANGED_CB(input_changed)
-  // 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICKLEFT_UP ) PORT_CHANGED_CB(input_changed)
-  // 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICKLEFT_DOWN ) PORT_CHANGED_CB(input_changed)
-
-  // 	PORT_START("IN.1") // S2
-  // 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SELECT ) PORT_CHANGED_CB(input_changed) PORT_NAME("Time")
-  // 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_START2 ) PORT_CHANGED_CB(input_changed) PORT_NAME("Game B")
-  // 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_START1 ) PORT_CHANGED_CB(input_changed) PORT_NAME("Game A")
-  // 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_SERVICE2 ) PORT_CHANGED_CB(input_changed) PORT_NAME("Alarm")
-
-  // 	PORT_START("ACL")
-  // 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SERVICE1 ) PORT_CHANGED_CB(acl_button) PORT_NAME("ACL")
-
-  // 	PORT_START("BA")
-  // 	PORT_CONFNAME( 0x01, 0x01, "Increase Score (Cheat)") // factory test, unpopulated on PCB
-  // 	PORT_CONFSETTING(    0x01, DEF_STR( Off ) )
-  // 	PORT_CONFSETTING(    0x00, DEF_STR( On ) )
-
-  // 	PORT_START("B")
-  // 	PORT_CONFNAME( 0x01, 0x01, "Infinite Lives (Cheat)") // "
-  // 	PORT_CONFSETTING(    0x01, DEF_STR( Off ) )
-  // 	PORT_CONFSETTING(    0x00, DEF_STR( On ) )
-  // INPUT_PORTS_END
-
-  // // config
-
-  // void gnw_mario_state::gnw_mario(machine_config &config)
-  // {
-  // 	sm510_dualh(config, 2258/2, 1440/2, 2261/2, 1440/2); // R mask option confirmed
-  // }`;
 
   // Get all port bodies
   let ports: {

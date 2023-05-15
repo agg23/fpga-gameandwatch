@@ -16,7 +16,7 @@ export type Screen =
       height: number;
     }
   | {
-      type: "dual_vertical";
+      type: "dualVertical";
 
       top: {
         width: number;
@@ -29,7 +29,7 @@ export type Screen =
       };
     }
   | {
-      type: "dual_horizontal";
+      type: "dualHorizontal";
 
       left: {
         width: number;

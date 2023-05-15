@@ -137,7 +137,7 @@ const standard_dual_horiztonal = (
   cpu,
 
   screen: {
-    type: "dual_horizontal",
+    type: "dualHorizontal",
 
     left: {
       width: leftWidth,
@@ -161,7 +161,7 @@ const standard_dual_vertical = (
   cpu,
 
   screen: {
-    type: "dual_vertical",
+    type: "dualVertical",
 
     top: {
       width: topWidth,
