@@ -18,7 +18,12 @@
       "request": "launch",
       "name": "Debug",
       "program": "${workspaceFolder}/support/target/debug/fpga-gnw-romgenerator",
-      "args": [],
+      "args": [
+        "--mame-path",
+        "/Users/adam/Downloads/Mame 252/",
+        "specific",
+        "gnw_cgrab"
+      ],
       "cwd": "${workspaceFolder}/support",
       "sourceLanguages": ["rust"]
     }

@@ -149,15 +149,9 @@ pub fn render(
                 )
                 .expect("Could not convert image data");
 
-                let dimensions = ImageDimensions::new(
-                    &view_bounds,
-                    &element.bounds.to_xy(),
-                    ratio,
-                    image.width() as f32,
-                    image.height() as f32,
-                );
+                let dimensions = ImageDimensions::new(&view_bounds, &element.bounds.to_xy(), ratio);
 
-                let image = DynamicImage::ImageRgba8(image).resize(
+                let image = DynamicImage::ImageRgba8(image).resize_exact(
                     dimensions.width,
                     dimensions.height,
                     FilterType::CatmullRom,
@@ -192,19 +186,16 @@ pub fn render(
 
                 let bounds = screen.bounds.to_xy();
 
-                let width: f32 = bounds.width as f32 * ratio;
-                let height = bounds.height as f32 * ratio;
-
                 let dimensions = ImageDimensions::new(
                     &view_bounds,
                     &bounds,
                     ratio,
                     // We don't care about image dimensions for SVG
-                    width,
-                    height,
                 );
 
-                let svg_map = build_svg(&file_path, width as u32, height as u32);
+                // TODO: We don't really have a way to scale SVGs that won't result in a quality loss
+                // so that isn't handled here
+                let svg_map = build_svg(&file_path, dimensions.width, dimensions.height);
 
                 pixmap.draw_pixmap(
                     dimensions.x + x_offset,
@@ -274,17 +265,11 @@ struct ImageDimensions {
 }
 
 impl ImageDimensions {
-    fn new(
-        view_bounds: &Bounds,
-        bounds: &Bounds,
-        ratio: f32,
-        image_width: f32,
-        image_height: f32,
-    ) -> Self {
+    fn new(view_bounds: &Bounds, bounds: &Bounds, ratio: f32) -> Self {
         let x = ((bounds.x as i32 - view_bounds.x as i32) as f32 * ratio).round() as i32;
         let y = ((bounds.y as i32 - view_bounds.y as i32) as f32 * ratio).round() as i32;
-        let width = bounds.width as f32 * ratio;
-        let height = bounds.height as f32 * ratio;
+        let width = (bounds.width as f32 * ratio) as u32;
+        let height = (bounds.height as f32 * ratio) as u32;
 
         if x < 0 {
             println!("Unexpected X: {x} is less than 0");
@@ -294,25 +279,11 @@ impl ImageDimensions {
             println!("Unexpected Y: {y} is less than 0");
         }
 
-        // Use this ratio to rescale the _actual_ size of the image asset so that it maintains proportions,
-        // but sets the max dimension to match the bounds
-        let image_ratio_x = width / image_width;
-        let image_ratio_y = height / image_height;
-
-        let image_ratio = if image_ratio_x < image_ratio_y {
-            image_ratio_x
-        } else {
-            image_ratio_y
-        };
-
-        let image_width = (image_ratio * image_width) as u32;
-        let image_height = (image_ratio * image_height) as u32;
-
         ImageDimensions {
             x,
             y,
-            width: image_width,
-            height: image_height,
+            width,
+            height,
         }
     }
 }

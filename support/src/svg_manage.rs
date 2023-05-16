@@ -127,9 +127,7 @@ pub fn build_svg(svg_path: &Path, width: u32, height: u32) -> Pixmap {
         }
     }
 
-    let mut tree = usvg::Tree::from_str(&svg_contents, &usvg::Options::default()).unwrap();
-
-    let viewbox = tree.view_box;
+    let tree = usvg::Tree::from_str(&svg_contents, &usvg::Options::default()).unwrap();
 
     // Clear unnecessary nodes
     for node in tree.root.descendants() {
@@ -143,6 +141,7 @@ pub fn build_svg(svg_path: &Path, width: u32, height: u32) -> Pixmap {
         mutate_usvg_node(&node, &svg_id_to_title);
     }
 
+    // This scales proportionally, which is not always what MAME does (gnw_cgrab)
     let mut pixmap = Pixmap::new(width, height).unwrap();
     resvg::render(
         &tree,
