@@ -20,7 +20,7 @@ pub fn render(
     platform: &PresetDefinition,
     asset_dir: &Path,
 ) -> Result<PathBuf, String> {
-    let mut view_bounds: Option<&Bounds> = None;
+    let mut view_bounds: Option<Bounds> = None;
     let mut elements: Vec<&Element> = vec![];
     let mut screens: Vec<&Screen> = vec![];
 
@@ -33,7 +33,7 @@ pub fn render(
                         layout.name
                     ));
                 }
-                view_bounds = Some(bounds);
+                view_bounds = Some(bounds.to_xy());
             }
             ViewElement::Element(element) => elements.push(element),
             ViewElement::Screen(screen) => screens.push(screen),
@@ -41,7 +41,7 @@ pub fn render(
     }
 
     let view_bounds = if let Some(view_bounds) = view_bounds {
-        view_bounds.clone()
+        view_bounds
     } else {
         // Calculate actual bounds
         let mut min_x: Option<i32> = None;
@@ -51,8 +51,8 @@ pub fn render(
 
         for bounds in elements
             .iter()
-            .map(|e| &e.bounds)
-            .chain(screens.iter().map(|s| &s.bounds))
+            .map(|e| e.bounds.to_xy())
+            .chain(screens.iter().map(|s| s.bounds.to_xy()))
         {
             if let Some(inner_min_x) = min_x {
                 if inner_min_x > bounds.x {
@@ -118,7 +118,8 @@ pub fn render(
                 already_applied_refs.insert(&element.ref_name);
 
                 match element.ref_name.to_lowercase().as_str() {
-                    "dust" | "fix" | "fix-top" | "fix-bottom" | "fix-left" | "fix-right" => {
+                    "dust" | "fix" | "fix-top" | "fix-bottom" | "fix-left" | "fix-right"
+                    | "gradient" => {
                         // Ignore these features
                         println!("Ignoring element by name {}", element.ref_name);
                         continue;
@@ -136,7 +137,7 @@ pub fn render(
 
                 let dimensions = ImageDimensions::new(
                     &view_bounds,
-                    &element.bounds,
+                    &element.bounds.to_xy(),
                     ratio,
                     image.width() as f32,
                     image.height() as f32,
@@ -172,12 +173,14 @@ pub fn render(
                     platform,
                 ));
 
-                let width: f32 = screen.bounds.width as f32 * ratio;
-                let height = screen.bounds.height as f32 * ratio;
+                let bounds = screen.bounds.to_xy();
+
+                let width: f32 = bounds.width as f32 * ratio;
+                let height = bounds.height as f32 * ratio;
 
                 let dimensions = ImageDimensions::new(
                     &view_bounds,
-                    &screen.bounds,
+                    &bounds,
                     ratio,
                     // We don't care about image dimensions for SVG
                     width,

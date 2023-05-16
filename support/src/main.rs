@@ -1,19 +1,13 @@
 #[macro_use]
 extern crate guard;
 
-use std::{
-    collections::HashMap,
-    env::temp_dir,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, env::temp_dir, fs, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 
 use assets::get_assets;
 use layout::parse_layout;
 use manifest::PlatformSpecification;
-use svg_manage::build_svg;
 
 use crate::manifest::CPUType;
 
