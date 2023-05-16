@@ -28,6 +28,8 @@ pub struct View {
 #[serde(rename_all = "lowercase")]
 pub enum ViewElement {
     Bounds(CompleteBounds),
+    #[serde(alias = "bezel")]
+    #[serde(alias = "overlay")]
     Element(Element),
     Screen(Screen),
 }
@@ -109,6 +111,7 @@ impl CompleteBounds {
 #[derive(Debug, Deserialize)]
 pub struct Element {
     #[serde(rename = "ref")]
+    #[serde(alias = "element")]
     pub ref_name: String,
     pub bounds: CompleteBounds,
     pub blend: Option<BlendType>,
@@ -157,6 +160,7 @@ fn select_view(views: &mut HashMap<String, View>) -> Option<View> {
         "background only (no shadow)",
         "backgrounds only",
         "background only",
+        "background",
     ];
 
     for name in desired_names {
