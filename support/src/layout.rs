@@ -73,11 +73,19 @@ pub fn parse_layout(temp_dir: &Path) -> Result<View, String> {
 }
 
 fn select_view(views: &mut HashMap<String, View>) -> Option<View> {
-    if let Some(view) = views.remove("backgrounds only (no shadow)") {
-        Some(view)
-    } else if let Some(view) = views.remove("backgrounds only (no shadow)") {
-        Some(view)
-    } else {
-        None
+    // Constructed this way to give ordered priority to each view name we want
+    let desired_names = vec![
+        "backgrounds only (no shadow)",
+        "background only (no shadow)",
+        "backgrounds only",
+        "background only",
+    ];
+
+    for name in desired_names {
+        if let Some(view) = views.remove(name) {
+            return Some(view);
+        }
     }
+
+    None
 }

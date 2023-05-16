@@ -118,7 +118,7 @@ pub fn render(
                 already_applied_refs.insert(&element.ref_name);
 
                 match element.ref_name.to_lowercase().as_str() {
-                    "dust" | "fix-top" | "fix-bottom" => {
+                    "dust" | "fix" | "fix-top" | "fix-bottom" | "fix-left" | "fix-right" => {
                         // Ignore these features
                         println!("Ignoring element by name {}", element.ref_name);
                         continue;
