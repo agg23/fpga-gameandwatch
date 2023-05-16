@@ -3,12 +3,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use image::imageops::FilterType;
-use resvg::tiny_skia::{Pixmap, PixmapPaint};
+use image::{imageops::FilterType, DynamicImage, ImageBuffer, Rgba};
+use resvg::tiny_skia::{BlendMode, Pixmap, PixmapPaint};
 use tiny_skia_path::Transform;
 
 use crate::{
-    layout::{Bounds, Element, Screen, View, ViewElement},
+    layout::{BlendType, Bounds, Element, Screen, View, ViewElement},
     manifest::{self, PresetDefinition},
     svg_manage::build_svg,
     HEIGHT, WIDTH,
@@ -118,22 +118,36 @@ pub fn render(
                 already_applied_refs.insert(&element.ref_name);
 
                 match element.ref_name.to_lowercase().as_str() {
-                    "dust" | "fix" | "fix-top" | "fix-bottom" | "fix-left" | "fix-right"
-                    | "gradient" => {
+                    "dust" => {
                         // Ignore these features
                         println!("Ignoring element by name {}", element.ref_name);
                         continue;
                     }
-                    _ => {}
+                    value => {
+                        if value.starts_with("fix") || value.starts_with("gradient") {
+                            println!("Ignoring element by name {}", element.ref_name);
+                            continue;
+                        }
+                    }
                 }
 
                 let file_path = asset_dir
                     .join("foo")
                     .with_file_name(format!("{}.png", element.ref_name));
 
-                guard!(let Ok(image) = image::open(&file_path) else {
-                    return Err(format!("Could not load element asset at {file_path:?}"));
+                // A bug in either tiny_skia or image prevents transparency from working correctly when imported
+                // through image, so we import in tiny_skia and convert
+                guard!(let Ok(image) = Pixmap::load_png(&file_path) else {
+                    println!("Ignoring element asset {} which was not at {file_path:?}", element.ref_name);
+                    continue;
                 });
+
+                let image = ImageBuffer::<Rgba<u8>, Vec<u8>>::from_vec(
+                    image.width(),
+                    image.height(),
+                    image.take(),
+                )
+                .expect("Could not convert image data");
 
                 let dimensions = ImageDimensions::new(
                     &view_bounds,
@@ -143,8 +157,11 @@ pub fn render(
                     image.height() as f32,
                 );
 
-                let image =
-                    image.resize(dimensions.width, dimensions.height, FilterType::CatmullRom);
+                let image = DynamicImage::ImageRgba8(image).resize(
+                    dimensions.width,
+                    dimensions.height,
+                    FilterType::CatmullRom,
+                );
 
                 // Dimensions might change by a pixel as part of resizing
                 let image_width = image.width();
@@ -161,7 +178,7 @@ pub fn render(
                     dimensions.x + x_offset,
                     dimensions.y + y_offset,
                     image_map.as_ref(),
-                    &PixmapPaint::default(),
+                    &blend_to_pixmap_paint(&element.blend),
                     Transform::identity(),
                     None,
                 );
@@ -229,6 +246,24 @@ fn screen_filename(index: usize, platform_name: &str, platform: &PresetDefinitio
     };
 
     format!("{platform_name}{suffix}.svg")
+}
+
+fn blend_to_pixmap_paint(blend: &Option<BlendType>) -> PixmapPaint {
+    let mut paint = PixmapPaint::default();
+
+    // paint.blend_mode = BlendMode::Overlay;
+
+    if let Some(blend) = blend {
+        match blend {
+            BlendType::Add => paint.blend_mode = BlendMode::Plus,
+            BlendType::Alpha => {
+                // TODO: Unimplemented
+            }
+            BlendType::Multiply => paint.blend_mode = BlendMode::Multiply,
+        }
+    }
+
+    paint
 }
 
 struct ImageDimensions {

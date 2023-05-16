@@ -111,12 +111,22 @@ pub struct Element {
     #[serde(rename = "ref")]
     pub ref_name: String,
     pub bounds: CompleteBounds,
+    pub blend: Option<BlendType>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BlendType {
+    Add,
+    Alpha,
+    Multiply,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Screen {
     pub index: i32,
     pub bounds: CompleteBounds,
+    pub blend: Option<BlendType>,
 }
 
 pub fn parse_layout(temp_dir: &Path) -> Result<View, String> {
@@ -141,6 +151,8 @@ pub fn parse_layout(temp_dir: &Path) -> Result<View, String> {
 fn select_view(views: &mut HashMap<String, View>) -> Option<View> {
     // Constructed this way to give ordered priority to each view name we want
     let desired_names = vec![
+        "backgrounds only (no frame)",
+        "background only (no frame)",
         "backgrounds only (no shadow)",
         "background only (no shadow)",
         "backgrounds only",
