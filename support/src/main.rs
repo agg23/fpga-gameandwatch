@@ -5,6 +5,8 @@ use std::{collections::HashMap, env::temp_dir, fs, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 
+use colored::Colorize;
+
 use assets::get_assets;
 use layout::parse_layout;
 use manifest::PlatformSpecification;
@@ -22,8 +24,11 @@ static HEIGHT: usize = WIDTH;
 
 #[derive(Subcommand, Clone, Debug)]
 enum FilterArg {
+    /// Match a particular game
     Specific { name: String },
+    /// Match the games that use a particular CPU
     CPU { name: CPUType },
+    /// All game types specified in the manifest.json
     All,
 }
 
@@ -32,7 +37,12 @@ struct Args {
     #[command(subcommand)]
     filter: FilterArg,
 
+    #[arg(short = 'o', long)]
+    /// Only the games located in your MAME directory
+    only_owned: bool,
+
     #[arg(short = 'm', long)]
+    /// The path to your MAME directory containing your games
     mame_path: PathBuf,
 
     #[arg(short = 'a', long, default_value = "manifest.json")]
@@ -83,6 +93,7 @@ fn main() {
     platforms.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
 
     let mut success_count = 0;
+    let mut skip_count = 0;
     let mut fail_count = 0;
     let platform_count = platforms.len();
 
@@ -97,10 +108,16 @@ fn main() {
         let temp_dir = temp_dir.join(name.clone());
 
         println!("-------------------------");
-        println!("Processing device {name}\n");
+        println!("Processing device {}\n", name.green());
 
         if let Err(err) = get_assets(&name, &args.mame_path, &temp_dir) {
-            fail(name, err);
+            if !args.only_owned {
+                // Only fail if we're not looking for only owned games
+                fail(name, err);
+            } else {
+                println!("Skipping device {name}: Not installed\n");
+                skip_count += 1;
+            }
             continue;
         }
 
@@ -120,12 +137,14 @@ fn main() {
             }
         };
 
-        println!("Successfully created device {name} at {path:?}\n");
+        println!("Successfully created device {} at {path:?}\n", name.green());
         success_count += 1;
     }
 
     println!("-------------------------");
-    println!("Total: {platform_count}, Success: {success_count}, Fail: {fail_count}",);
+    println!(
+        "Total: {platform_count}, Success: {success_count}, Fail: {fail_count}, Skip: {skip_count}",
+    );
 
     // guard!(let Some(platform) = manifest.get(platform_name) else {
     //     println!("Could not find platform {platform_name} in manifest");
