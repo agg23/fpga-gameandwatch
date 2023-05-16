@@ -6,6 +6,17 @@ use serde::Deserialize;
 pub struct PlatformSpecification {
     pub device: PresetDefinition,
     pub port_map: PlatformPortMapping,
+    pub metadata: Metdata,
+}
+
+/* Metdata */
+
+#[derive(Debug, Deserialize)]
+pub struct Metdata {
+    // This is a year, as MAME has question marks in some years
+    pub year: String,
+    pub name: String,
+    pub company: String,
 }
 
 /* Preset Definition */

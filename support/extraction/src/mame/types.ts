@@ -51,6 +51,13 @@ export interface PresetDefinition {
 export interface PlatformSpecification {
   device: PresetDefinition;
   portMap: PlatformPortMapping;
+  metadata: Metadata;
+}
+
+export interface Metadata {
+  year: string;
+  company: string;
+  name: string;
 }
 
 /* Inputs */

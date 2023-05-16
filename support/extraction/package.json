@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "foo": "ts-node src/extract.ts"
+    "build": "ts-node src/extract.ts"
   },
   "author": "agg23",
   "license": "MIT",

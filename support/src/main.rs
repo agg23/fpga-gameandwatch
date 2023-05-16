@@ -3,7 +3,7 @@ extern crate guard;
 
 use std::{collections::HashMap, env::temp_dir, fs, path::PathBuf};
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 use colored::Colorize;
 
@@ -32,10 +32,22 @@ enum FilterArg {
     All,
 }
 
+#[derive(ValueEnum, Clone, Debug)]
+enum CompanyArg {
+    Nintendo,
+    Elektronika,
+    Konami,
+    Nelsonic,
+    /// Tiger Electronics
+    Tiger,
+    Tronica,
+    VTech,
+}
+
 #[derive(Parser, Debug)]
 struct Args {
     #[command(subcommand)]
-    filter: FilterArg,
+    filter: Option<FilterArg>,
 
     #[arg(short = 'o', long)]
     /// Only the games located in your MAME directory
@@ -47,6 +59,37 @@ struct Args {
 
     #[arg(short = 'a', long, default_value = "manifest.json")]
     manifest_path: PathBuf,
+
+    // Company filtering
+    #[arg(short, long)]
+    /// Filter to Nintendo games
+    nintendo: bool,
+
+    #[arg(short, long)]
+    /// Filter to Elektronika games
+    elektronika: bool,
+
+    #[arg(short, long)]
+    /// Filter to Konami games
+    konami: bool,
+
+    #[arg(short = 'l', long)]
+    /// Filter to Nelsonic games
+    nelsonic: bool,
+
+    #[arg(short, long)]
+    /// Filter to Tiger Electronics games
+    tiger: bool,
+
+    #[arg(short = 'r', long)]
+    /// Filter to Tronica games
+    /// Includes in addition to other specified filters
+    tronica: bool,
+
+    #[arg(short, long)]
+    /// Filter to VTech games
+    /// Includes in addition to other specified filters
+    vtech: bool,
 }
 
 fn main() {
@@ -59,8 +102,43 @@ fn main() {
     let manifest: HashMap<String, PlatformSpecification> =
         serde_json::from_slice(manifest_file.as_slice()).expect("Could not parse manifest file");
 
-    let platforms: Option<Vec<(String, &PlatformSpecification)>> = match args.filter {
-        FilterArg::Specific { name } => {
+    let company_filter = {
+        let mut filter = vec![];
+
+        if args.nintendo {
+            filter.push("nintendo");
+        }
+
+        if args.elektronika {
+            filter.push("elektronika");
+            filter.push("bootleg (elektronika)");
+        }
+
+        if args.konami {
+            filter.push("konami");
+        }
+
+        if args.nelsonic {
+            filter.push("nelsonic");
+        }
+
+        if args.tiger {
+            filter.push("tiger");
+        }
+
+        if args.tronica {
+            filter.push("tronica");
+        }
+
+        if args.vtech {
+            filter.push("vtech");
+        }
+
+        filter
+    };
+
+    let platforms: Option<Vec<(String, &PlatformSpecification)>> = match &args.filter {
+        Some(FilterArg::Specific { name }) => {
             let trimmed_name = name.trim().to_string();
 
             if let Some(entry) = manifest.get(&trimmed_name) {
@@ -69,10 +147,10 @@ fn main() {
                 None
             }
         }
-        FilterArg::CPU { name } => {
+        Some(FilterArg::CPU { name }) => {
             let result = manifest
                 .iter()
-                .filter(|(_, p)| p.device.cpu == name)
+                .filter(|(_, p)| p.device.cpu == *name)
                 .map(|(n, p)| (n.clone(), p))
                 .collect::<Vec<(String, &PlatformSpecification)>>();
 
@@ -82,7 +160,13 @@ fn main() {
                 None
             }
         }
-        FilterArg::All => Some(manifest.iter().map(|(n, p)| (n.clone(), p)).collect()),
+        Some(FilterArg::All) | None => Some(manifest.iter().map(|(n, p)| (n.clone(), p)).collect()),
+    };
+
+    let only_owned = if args.filter.is_some() {
+        args.only_owned
+    } else {
+        true
     };
 
     guard!(let Some(mut platforms) = platforms else {
@@ -92,12 +176,26 @@ fn main() {
 
     platforms.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
 
+    let platforms = platforms.iter().filter(|(_, p)| {
+        if company_filter.len() > 0 {
+            for filter in &company_filter {
+                if p.metadata.company.to_lowercase().starts_with(filter) {
+                    return true;
+                }
+            }
+        } else {
+            return true;
+        }
+
+        false
+    });
+
     let mut success_count = 0;
     let mut skip_count = 0;
     let mut fail_count = 0;
-    let platform_count = platforms.len();
+    let mut platform_count = 0;
 
-    let mut fail = |name: String, message: String| {
+    let mut fail = |name: &String, message: String| {
         println!("{message}");
         println!("Skipping device {name}\n");
 
@@ -105,13 +203,14 @@ fn main() {
     };
 
     for (name, platform) in platforms {
+        platform_count += 1;
         let temp_dir = temp_dir.join(name.clone());
 
         println!("-------------------------");
         println!("Processing device {}\n", name.green());
 
         if let Err(err) = get_assets(&name, &args.mame_path, &temp_dir) {
-            if !args.only_owned {
+            if !only_owned {
                 // Only fail if we're not looking for only owned games
                 fail(name, err);
             } else {
@@ -145,38 +244,4 @@ fn main() {
     println!(
         "Total: {platform_count}, Success: {success_count}, Fail: {fail_count}, Skip: {skip_count}",
     );
-
-    // guard!(let Some(platform) = manifest.get(platform_name) else {
-    //     println!("Could not find platform {platform_name} in manifest");
-    //     return;
-    // });
-
-    // guard!(let Ok(layout) = parse_layout() else {
-    //     println!("Could not parse layout");
-    //     return;
-    // });
-
-    // get_assets(platform_name, mame_path, &temp_dir);
-
-    // render::render(platform_name, &layout, &platform.device, &temp_dir);
-
-    // parse_layout();
-
-    // let manifest = fs::read("extraction/output.json").unwrap();
-
-    // let output: HashMap<String, PlatformSpecification> =
-    //     serde_json::from_slice(manifest.as_slice()).unwrap();
-
-    // // println!("{output:?}");
-
-    // println!("Selecting only SM510 systems");
-
-    // output
-    //     .iter()
-    //     .filter(|(_, p)| p.device.cpu == CPUType::SM510)
-    //     .for_each(|(s, _)| println!("{s}"));
-
-    // let png = build_svg(svg_path);
-
-    // fs::write("output.png", png).unwrap();
 }

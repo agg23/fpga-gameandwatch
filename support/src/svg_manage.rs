@@ -65,7 +65,7 @@ pub fn build_svg(svg_path: &Path, width: u32, height: u32) -> Pixmap {
 
                 if let Some(ActivePath { ref mut title, .. }) = active_path {
                     *title = parse_title(value);
-                } else if let Some(ActiveGroup { title, id, .. }) = group_stack.last_mut() {
+                } else if let Some(ActiveGroup { title, .. }) = group_stack.last_mut() {
                     // Set group title
                     *title = parse_title(value);
                 }

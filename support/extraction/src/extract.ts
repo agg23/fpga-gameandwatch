@@ -1,6 +1,10 @@
 import { readFileSync, writeFileSync } from "fs";
 import { createPreset } from "./mame/presets";
-import { PlatformPortMapping, PlatformSpecification } from "./mame/types";
+import {
+  Metadata,
+  PlatformPortMapping,
+  PlatformSpecification,
+} from "./mame/types";
 import { collapseInputs, parseInputs } from "./mame/inputs";
 
 const PORT_SETTINGS_REGEX =
@@ -9,6 +13,9 @@ const PORT_SETTINGS_REGEX =
 const CLASS_DEF_REGEX = /class\s+(.*_state)\s+:[\s\S]*?};/g;
 
 const CLASS_DEF_CONSTUCTOR_REGEX = /void\s+(.*)\(machine_config &config/g;
+
+const SYS_DEF_REGEX =
+  /SYST\(\s*([0-9\?]{4})\s*,\s*(.*?)?\s*,.*?,.*?,.*?,.*?,.*?,.*?,\s*"(.*?)"\s*,\s*"(.*?)"/g;
 
 const INSTANCE_CONSTRUCTOR_REGEX_BUILDER = (
   stateName: string,
@@ -22,6 +29,21 @@ const INSTANCE_CONSTRUCTOR_REGEX_BUILDER = (
 // because the MAME code isn't really laid out in a nice way to do that. So we do the next best thing
 const run = () => {
   const file = readFileSync("/Users/adam/Downloads/hh_sm510.cpp", "utf8");
+
+  // Get all metadata
+  let metadata: {
+    [name: string]: Metadata;
+  } = {};
+
+  for (const match of file.matchAll(SYS_DEF_REGEX)) {
+    const [_, year, id, company, name] = match;
+
+    metadata[id] = {
+      year,
+      company,
+      name,
+    };
+  }
 
   // Get all port bodies
   let ports: {
@@ -90,6 +112,8 @@ const run = () => {
         continue;
       }
 
+      const localMetadata = metadata[device];
+
       consoles[device] = {
         device: preset,
         portMap: !!portMap
@@ -97,47 +121,12 @@ const run = () => {
           : {
               ports: [],
             },
+        metadata: localMetadata,
       };
     }
   }
 
-  writeFileSync("output.json", JSON.stringify(consoles, undefined, 4));
-
-  // const deviceStrings = [];
-  // for (const match of file.matchAll(EXTRACT_BODY_REGEX)) {
-  //   deviceStrings.push(match[0]);
-  // }
-
-  // if (names.length !== deviceStrings.length) {
-  //   console.log(
-  //     `Mismatch between device names (${names.length}) and extracted devices (${deviceStrings.length})`
-  //   );
-  //   // return;
-  // }
-
-  // for (let i = 0; i < names.length; i++) {
-  //   const name = names[i];
-  //   const deviceString = deviceStrings[i]!;
-
-  //   const match = EXTRACT_NAME_REGEX.exec(deviceString);
-
-  //   if (!match || match.length < 2) {
-  //     console.log(`Block ${i}: Could not extract name. Expected ${name}`);
-
-  //     console.log(deviceString);
-  //     return;
-  //   }
-
-  //   if (match[1] !== name) {
-  //     console.log(
-  //       `Block ${i} had mismatch between expected name ${name} and found name ${match[1]}`
-  //     );
-
-  //     console.log(match, deviceString);
-
-  //     return;
-  //   }
-  // }
+  writeFileSync("manifest.json", JSON.stringify(consoles, undefined, 4));
 };
 
 run();
