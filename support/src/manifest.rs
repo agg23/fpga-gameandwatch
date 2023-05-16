@@ -1,3 +1,4 @@
+use clap::ValueEnum;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -15,7 +16,7 @@ pub struct PresetDefinition {
     pub screen: Screen,
 }
 
-#[derive(PartialEq, Debug, Deserialize)]
+#[derive(PartialEq, Clone, Debug, Deserialize, ValueEnum)]
 #[serde(rename_all = "lowercase")]
 pub enum CPUType {
     SM5a,

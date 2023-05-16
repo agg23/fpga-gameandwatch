@@ -1,4 +1,4 @@
-use std::fs;
+use std::{collections::HashMap, fs, path::Path};
 
 use serde::Deserialize;
 
@@ -34,10 +34,10 @@ pub enum ViewElement {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Bounds {
-    pub x: usize,
-    pub y: usize,
-    pub width: usize,
-    pub height: usize,
+    pub x: i32,
+    pub y: i32,
+    pub width: i32,
+    pub height: i32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -49,18 +49,35 @@ pub struct Element {
 
 #[derive(Debug, Deserialize)]
 pub struct Screen {
-    pub index: usize,
+    pub index: i32,
     pub bounds: Bounds,
 }
 
-pub fn parse_layout() -> Result<View, String> {
-    let layout_file = fs::read("assets/default.lay").unwrap();
+pub fn parse_layout(temp_dir: &Path) -> Result<View, String> {
+    let layout_path = temp_dir.join("default.lay");
+    let layout_file = fs::read(layout_path).unwrap();
 
     let output: MameLayout = serde_xml_rs::from_reader(layout_file.as_slice()).unwrap();
 
-    guard!(let Some(background_only) = output.view.into_iter().filter(|v| v.name.to_lowercase().starts_with("backgrounds only")).next() else {
-        return Err("Could not find view settings".to_string());
+    let mut map = HashMap::<String, View>::new();
+
+    for view in output.view {
+        map.insert(view.name.to_lowercase(), view);
+    }
+
+    guard!(let Some(view) = select_view(&mut map) else {
+        return Err("Could not find suitable view".to_string());
     });
 
-    return Ok(background_only);
+    Ok(view)
+}
+
+fn select_view(views: &mut HashMap<String, View>) -> Option<View> {
+    if let Some(view) = views.remove("backgrounds only (no shadow)") {
+        Some(view)
+    } else if let Some(view) = views.remove("backgrounds only (no shadow)") {
+        Some(view)
+    } else {
+        None
+    }
 }

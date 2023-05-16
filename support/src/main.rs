@@ -1,7 +1,14 @@
 #[macro_use]
 extern crate guard;
 
-use std::{collections::HashMap, env::temp_dir, fs, path::Path};
+use std::{
+    collections::HashMap,
+    env::temp_dir,
+    fs,
+    path::{Path, PathBuf},
+};
+
+use clap::{Parser, Subcommand};
 
 use assets::get_assets;
 use layout::parse_layout;
@@ -19,32 +26,126 @@ mod svg_manage;
 static WIDTH: usize = 720;
 static HEIGHT: usize = WIDTH;
 
+#[derive(Subcommand, Clone, Debug)]
+enum FilterArg {
+    Specific { name: String },
+    CPU { name: CPUType },
+    All,
+}
+
+#[derive(Parser, Debug)]
+struct Args {
+    #[command(subcommand)]
+    filter: FilterArg,
+
+    #[arg(short = 'm', long)]
+    mame_path: PathBuf,
+
+    #[arg(short = 'a', long, default_value = "manifest.json")]
+    manifest_path: PathBuf,
+}
+
 fn main() {
-    // let svg_path = "assets/gnw_dkong2_top.svg";
+    let args = Args::parse();
 
     let temp_dir = temp_dir().join("gnw");
-    let mame_path = Path::new("/Users/adam/Downloads/Mame 252/");
 
-    let platform_name = "gnw_dkong2";
-
-    let manifest_file = fs::read("extraction/output.json").unwrap();
+    let manifest_file = fs::read(args.manifest_path).expect("Could not find manifest file");
 
     let manifest: HashMap<String, PlatformSpecification> =
-        serde_json::from_slice(manifest_file.as_slice()).unwrap();
+        serde_json::from_slice(manifest_file.as_slice()).expect("Could not parse manifest file");
 
-    guard!(let Some(platform) = manifest.get(platform_name) else {
-        println!("Could not find platform {platform_name} in manifest");
+    let platforms: Option<Vec<(String, &PlatformSpecification)>> = match args.filter {
+        FilterArg::Specific { name } => {
+            let trimmed_name = name.trim().to_string();
+
+            if let Some(entry) = manifest.get(&trimmed_name) {
+                Some(vec![(trimmed_name, entry)])
+            } else {
+                None
+            }
+        }
+        FilterArg::CPU { name } => {
+            let result = manifest
+                .iter()
+                .filter(|(_, p)| p.device.cpu == name)
+                .map(|(n, p)| (n.clone(), p))
+                .collect::<Vec<(String, &PlatformSpecification)>>();
+
+            if result.len() > 0 {
+                Some(result)
+            } else {
+                None
+            }
+        }
+        FilterArg::All => Some(manifest.iter().map(|(n, p)| (n.clone(), p)).collect()),
+    };
+
+    guard!(let Some(mut platforms) = platforms else {
+        println!("No manifest listings for selected devices found");
         return;
     });
 
-    guard!(let Ok(layout) = parse_layout() else {
-        println!("Could not parse layout");
-        return;
-    });
+    platforms.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
 
-    get_assets(platform_name, mame_path, &temp_dir);
+    let mut success_count = 0;
+    let mut fail_count = 0;
+    let platform_count = platforms.len();
 
-    render::render(platform_name, &layout, &platform.device, &temp_dir);
+    let mut fail = |name: String, message: String| {
+        println!("{message}");
+        println!("Skipping device {name}\n");
+
+        fail_count += 1;
+    };
+
+    for (name, platform) in platforms {
+        let temp_dir = temp_dir.join(name.clone());
+
+        println!("-------------------------");
+        println!("Processing device {name}\n");
+
+        if let Err(err) = get_assets(&name, &args.mame_path, &temp_dir) {
+            fail(name, err);
+            continue;
+        }
+
+        let layout = match parse_layout(&temp_dir) {
+            Ok(layout) => layout,
+            Err(err) => {
+                fail(name, err);
+                continue;
+            }
+        };
+
+        let path = match render::render(&name, &layout, &platform.device, &temp_dir) {
+            Ok(path) => path,
+            Err(err) => {
+                fail(name, err);
+                return;
+            }
+        };
+
+        println!("Successfully created device {name} at {path:?}\n");
+        success_count += 1;
+    }
+
+    println!("-------------------------");
+    println!("Total: {platform_count}, Success: {success_count}, Fail: {fail_count}",);
+
+    // guard!(let Some(platform) = manifest.get(platform_name) else {
+    //     println!("Could not find platform {platform_name} in manifest");
+    //     return;
+    // });
+
+    // guard!(let Ok(layout) = parse_layout() else {
+    //     println!("Could not parse layout");
+    //     return;
+    // });
+
+    // get_assets(platform_name, mame_path, &temp_dir);
+
+    // render::render(platform_name, &layout, &platform.device, &temp_dir);
 
     // parse_layout();
 

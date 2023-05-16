@@ -1,4 +1,7 @@
-use std::{collections::HashSet, path::Path};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use image::imageops::FilterType;
 use resvg::tiny_skia::{Pixmap, PixmapPaint};
@@ -11,7 +14,12 @@ use crate::{
     HEIGHT, WIDTH,
 };
 
-pub fn render(platform_name: &str, layout: &View, platform: &PresetDefinition, asset_dir: &Path) {
+pub fn render(
+    platform_name: &str,
+    layout: &View,
+    platform: &PresetDefinition,
+    asset_dir: &Path,
+) -> Result<PathBuf, String> {
     let mut view_bounds: Option<&Bounds> = None;
     let mut elements: Vec<&Element> = vec![];
     let mut screens: Vec<&Screen> = vec![];
@@ -20,11 +28,10 @@ pub fn render(platform_name: &str, layout: &View, platform: &PresetDefinition, a
         match item {
             ViewElement::Bounds(bounds) => {
                 if view_bounds.is_some() {
-                    println!(
+                    return Err(format!(
                         "View {} in {platform_name} has multiple bounds. Skipping",
                         layout.name
-                    );
-                    return;
+                    ));
                 }
                 view_bounds = Some(bounds);
             }
@@ -37,8 +44,8 @@ pub fn render(platform_name: &str, layout: &View, platform: &PresetDefinition, a
         view_bounds.clone()
     } else {
         // Calculate actual bounds
-        let mut min_x: Option<usize> = None;
-        let mut min_y: Option<usize> = None;
+        let mut min_x: Option<i32> = None;
+        let mut min_y: Option<i32> = None;
         let mut max_width = 0;
         let mut max_height = 0;
 
@@ -110,25 +117,22 @@ pub fn render(platform_name: &str, layout: &View, platform: &PresetDefinition, a
 
                 already_applied_refs.insert(&element.ref_name);
 
-                // let x = ((element.bounds.x - view_bounds.x) as f32 * ratio).round() as i32;
-                // let y = ((element.bounds.y - view_bounds.y) as f32 * ratio).round() as i32;
-                // let width = element.bounds.width as f32 * ratio;
-                // let height = element.bounds.height as f32 * ratio;
-
-                // if x < 0 {
-                //     println!("Unexpected X: {x} is less than 0");
-                // }
-
-                // if y < 0 {
-                //     println!("Unexpected Y: {y} is less than 0");
-                // }
+                match element.ref_name.to_lowercase().as_str() {
+                    "dust" | "fix-top" | "fix-bottom" => {
+                        // Ignore these features
+                        println!("Ignoring element by name {}", element.ref_name);
+                        continue;
+                    }
+                    _ => {}
+                }
 
                 let file_path = asset_dir
                     .join("foo")
                     .with_file_name(format!("{}.png", element.ref_name));
 
-                let image: image::DynamicImage =
-                    image::open(file_path).expect("Could not load element asset");
+                guard!(let Ok(image) = image::open(&file_path) else {
+                    return Err(format!("Could not load element asset at {file_path:?}"));
+                });
 
                 let dimensions = ImageDimensions::new(
                     &view_bounds,
@@ -138,27 +142,6 @@ pub fn render(platform_name: &str, layout: &View, platform: &PresetDefinition, a
                     image.height() as f32,
                 );
 
-                // let image_width = image.width() as f32;
-                // let image_height = image.height() as f32;
-
-                // let image_ratio_x = width / image_width;
-                // let image_ratio_y = height / image_height;
-
-                // let (image_ratio, scale_x) = if image_ratio_x < image_ratio_y {
-                //     (image_ratio_x, false)
-                // } else {
-                //     (image_ratio_y, true)
-                // };
-
-                // let image_width = (image_ratio * image_width) as u32;
-                // let image_height = (image_ratio * image_height) as u32;
-
-                // let (image_center_x, image_center_y) = if scale_x {
-                //     ((WIDTH as u32 - image_width) / 2, 0)
-                // } else {
-                //     (0, (HEIGHT as u32 - image_height) / 2)
-                // };
-
                 let image =
                     image.resize(dimensions.width, dimensions.height, FilterType::CatmullRom);
 
@@ -166,11 +149,12 @@ pub fn render(platform_name: &str, layout: &View, platform: &PresetDefinition, a
                 let image_width = image.width();
                 let image_height = image.height();
 
-                let image_map = Pixmap::from_vec(
+                guard!(let Some(image_map) = Pixmap::from_vec(
                     image.into_bytes(),
                     tiny_skia_path::IntSize::from_wh(image_width, image_height).unwrap(),
-                )
-                .expect("Could not convert PNG into Pixmap");
+                ) else {
+                    return Err(format!("Could not convert PNG into Pixmap"));
+                });
 
                 pixmap.draw_pixmap(
                     dimensions.x + x_offset,
@@ -183,7 +167,7 @@ pub fn render(platform_name: &str, layout: &View, platform: &PresetDefinition, a
             }
             ViewElement::Screen(screen) => {
                 let file_path = asset_dir.join("foo").with_file_name(screen_filename(
-                    screen.index,
+                    screen.index as usize,
                     platform_name,
                     platform,
                 ));
@@ -215,7 +199,11 @@ pub fn render(platform_name: &str, layout: &View, platform: &PresetDefinition, a
         }
     }
 
-    pixmap.save_png("foo.png").unwrap();
+    let debug_path = asset_dir.join(format!("{platform_name}.png"));
+
+    pixmap.save_png(&debug_path).unwrap();
+
+    Ok(debug_path)
 }
 
 fn screen_filename(index: usize, platform_name: &str, platform: &PresetDefinition) -> String {

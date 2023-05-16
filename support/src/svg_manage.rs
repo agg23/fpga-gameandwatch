@@ -216,7 +216,6 @@ fn mutate_usvg_node(node: &usvg::Node, svg_id_to_title: &HashMap<String, u8>) {
         usvg::NodeKind::Path(ref mut path) => {
             // Check if we care about this path
             guard!(let Some(title) = svg_id_to_title.get(&path.id) else {
-                println!("No title");
                 return;
             });
 
