@@ -10,7 +10,9 @@
         "ecosystem:gateman"
     ],
     "scripts": {
-        "verilator": "echo \"Error: no simulation specified\" && exit 1"
+        "verilator": "echo \"Error: no simulation specified\" && exit 1",
+        "build:pocket": "quartus_sh --flow compile projects/gameandwatch_pocket.qpf",
+        "program:pocket": "quartus_pgm -m jtag -c 1 -o \"p;projects/output_files/gameandwatch_pocket.sof@1\""
     },
     "hardware": {
         "id": "sm510",
@@ -18,6 +20,8 @@
         "year": 1980,
         "manufacturer": "Sharp"
     },
-    "platforms": {},
+    "platforms": {
+        "pocket": "1.3.0"
+    },
     "modules": {}
 }
