@@ -16,15 +16,15 @@ pub fn get_assets(platform_name: &str, mame_path: &Path, temp_dir: &Path) -> Res
         .with_file_name(platform_name)
         .with_extension("zip");
 
-    extract_path(&artwork_path, &temp_dir)?;
-    extract_path(&roms_path, &temp_dir)?;
+    extract_path(&artwork_path, &temp_dir, "artwork")?;
+    extract_path(&roms_path, &temp_dir, "ROM")?;
 
     Ok(())
 }
 
-fn extract_path(file_path: &Path, outdir: &Path) -> Result<(), String> {
+fn extract_path(file_path: &Path, outdir: &Path, data_type: &str) -> Result<(), String> {
     guard!(let Ok(zip_file) = File::open(file_path) else {
-        return Err(format!("Could not open expected artwork file at {file_path:?}"));
+        return Err(format!("Could not open expected {data_type} file at {file_path:?}"));
     });
 
     guard!(let Ok(mut archive) = ZipArchive::new(zip_file) else {

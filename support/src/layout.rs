@@ -161,6 +161,9 @@ fn select_view(views: &mut HashMap<String, View>) -> Option<View> {
         "backgrounds only",
         "background only",
         "background",
+        "handheld layout",
+        "external layout",
+        "screen focus",
     ];
 
     for name in desired_names {
