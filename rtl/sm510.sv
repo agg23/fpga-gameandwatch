@@ -26,14 +26,33 @@ module sm510 (
     output wire [7:0] output_shifter_s,
 
     // LCD Segments
-    output wire [15:0] segment_a,
-    output wire [15:0] segment_b,
+    output reg [15:0] segment_a,
+    output reg [15:0] segment_b,
     // Comb
     output reg segment_bs,
 
     // Audio
     output reg [1:0] buzzer_r
 );
+  // TODO: Remove
+  reg [1:0] cached_buzzer_r = 0;
+
+  reg buzzer = 0;
+
+  reg [1:0] delay_counter = 0;
+  always @(posedge clk) begin
+    if (clk_en) begin
+      delay_counter <= delay_counter + 2'h1;
+
+      if (delay_counter == 0) begin
+        buzzer <= ~buzzer;
+
+        buzzer_r[0] <= cached_buzzer_r[0] ? buzzer : 1'b0;
+        buzzer_r[1] <= cached_buzzer_r[1] ? ~buzzer : 1'b0;
+      end
+    end
+  end
+
   // PC
   reg [1:0] Pu = 0;
   reg [3:0] Pm = 0;
@@ -122,10 +141,13 @@ module sm510 (
   ////////////////////////////////////////////////////////////////////////////////////////
   // LCD Strobe
 
+  wire [15:0] ram_segment_a;
+  wire [15:0] ram_segment_b;
+
   // Select the active bit of display memory words in use
   // Comb
-  reg [3:0] lcd_h;
-  reg [1:0] lcd_h_index = 0;
+  reg  [ 3:0] lcd_h;
+  reg  [ 1:0] lcd_h_index = 0;
 
   assign output_lcd_h = lcd_h;
 
@@ -140,6 +162,10 @@ module sm510 (
       if (divider_64hz && ~prev_divider_64hz) begin
         // Strobe LCD
         lcd_h_index <= lcd_h_index + 2'b1;
+
+        // Copy over segments
+        segment_a   <= ram_segment_a;
+        segment_b   <= ram_segment_b;
       end
     end
   end
@@ -181,9 +207,9 @@ module sm510 (
       .data(ram_wr_data),
       .q(ram_data),
 
-      .lcd_h(lcd_h_index),
-      .segment_a(segment_a),
-      .segment_b(segment_b)
+      .lcd_h(lcd_h_index + 2'h1),
+      .segment_a(ram_segment_a),
+      .segment_b(ram_segment_b)
   );
 
   ////////////////////////////////////////////////////////////////////////////////////////
@@ -570,7 +596,7 @@ module sm510 (
             end
             8'h61: begin
               // ATR. Set R buzzer control value to the bottom two bits of Acc
-              buzzer_r <= Acc[1:0];
+              cached_buzzer_r <= Acc[1:0];
             end
             8'h62: begin
               // WR. Shift 0 into W

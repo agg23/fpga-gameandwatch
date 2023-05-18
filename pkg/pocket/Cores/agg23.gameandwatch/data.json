@@ -1,6 +1,15 @@
 {
-    "data": {
-        "magic": "APF_VER_1",
-        "data_slots": []
-    }
+  "data": {
+    "magic": "APF_VER_1",
+    "data_slots": [
+      {
+        "name": "Game",
+        "id": 0,
+        "required": true,
+        "parameters": "0x109",
+        "extensions": ["bin"],
+        "address": "0x10000000"
+      }
+    ]
+  }
 }
