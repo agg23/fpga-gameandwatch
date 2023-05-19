@@ -8,6 +8,7 @@ use resvg::tiny_skia::{BlendMode, Pixmap, PixmapPaint};
 use tiny_skia_path::Transform;
 
 use crate::{
+    encode_format::encode,
     layout::{BlendType, Bounds, Element, Screen, View, ViewElement},
     manifest::{self, PresetDefinition},
     svg_manage::build_svg,
@@ -104,7 +105,8 @@ pub fn render(
     // Keep track of which refs have already been added to the image, as most layouts contain multiple duplicates
     let mut already_applied_refs = HashSet::<&String>::new();
 
-    let mut pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
+    let mut background_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
+    let mut mask_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
 
     // We currently ignore offsetting by X/Y at the parent view, so the child positions are subtracted
     // from the parent's offset
@@ -168,7 +170,7 @@ pub fn render(
                     return Err(format!("Could not convert PNG into Pixmap"));
                 });
 
-                pixmap.draw_pixmap(
+                background_pixmap.draw_pixmap(
                     dimensions.x + x_offset,
                     dimensions.y + y_offset,
                     image_map.as_ref(),
@@ -197,7 +199,7 @@ pub fn render(
                 // so that isn't handled here
                 let svg_map = build_svg(&file_path, dimensions.width, dimensions.height);
 
-                pixmap.draw_pixmap(
+                mask_pixmap.draw_pixmap(
                     dimensions.x + x_offset,
                     dimensions.y + y_offset,
                     svg_map.as_ref(),
@@ -210,11 +212,18 @@ pub fn render(
         }
     }
 
-    let debug_path = asset_dir.join(format!("{platform_name}.png"));
+    // let debug_path = asset_dir.join(format!("{platform_name}.png"));
 
-    pixmap.save_png(&debug_path).unwrap();
+    // background_pixmap.save_png(&debug_path).unwrap();
+    // background_pixmap.data()
 
-    Ok(debug_path)
+    Ok(encode(
+        background_pixmap.data(),
+        mask_pixmap.data(),
+        asset_dir,
+    ))
+
+    // Ok(debug_path)
 }
 
 fn screen_filename(index: usize, platform_name: &str, platform: &PresetDefinition) -> String {

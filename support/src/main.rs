@@ -14,6 +14,7 @@ use manifest::PlatformSpecification;
 use crate::manifest::CPUType;
 
 mod assets;
+mod encode_format;
 mod layout;
 mod manifest;
 mod render;

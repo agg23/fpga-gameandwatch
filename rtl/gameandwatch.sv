@@ -55,39 +55,64 @@ module gameandwatch (
   wire sd_data_available;
   wire [15:0] sd_out;
 
-  image_fifo image_fifo (
+  wire [23:0] background_rgb;
+  wire [23:0] mask_rgb;
+
+  assign rgb = button_a ? mask_rgb : background_rgb;
+
+  wire fifo_clear = hblank_int && ~prev_hblank;
+
+  image_fifo background_image_fifo (
       .wrclk(clk_sys_131_072),
       .rdclk(clk_vid_32_768),
 
       .wrreq(buffer_count == 3'h3),
-      .data (buffer),
+      .data (background_buffer),
 
       .rdreq(de_int),
       // TODO: Can this be fixed somewhere?
-      .q({rgb[7:0], rgb[15:8], rgb[23:16]}),
+      // .q({rgb[7:0], rgb[15:8], rgb[23:16]}),
+      .q({background_rgb[7:0], background_rgb[15:8], background_rgb[23:16]}),
 
-      .aclr(hblank && ~prev_hblank)
+      .aclr(fifo_clear)
   );
 
-  localparam WORDS_PER_LINE = 16'd720 * 16'h3 / 16'h2;
+  image_fifo mask_image_fifo (
+      .wrclk(clk_sys_131_072),
+      .rdclk(clk_vid_32_768),
+
+      .wrreq(buffer_count == 3'h3),
+      .data (mask_buffer),
+
+      .rdreq(de_int),
+      .q({mask_rgb[7:0], mask_rgb[15:8], mask_rgb[23:16]}),
+
+      .aclr(fifo_clear)
+  );
+
+  // 1/3rd of each pixel per 16 bit word (one byte to each FIFO)
+  localparam WORDS_PER_LINE = 16'd720 * 16'h3;
 
   reg prev_sd_data_available;
   reg prev_hblank = 0;
 
-  // Two pixel buffer
-  reg [47:0] buffer = 0;
+  reg [23:0] background_buffer = 0;
+  reg [23:0] mask_buffer = 0;
+
   reg [2:0] buffer_count = 0;
   reg [15:0] sd_read_count = 0;
 
   always @(posedge clk_sys_131_072) begin
     if (reset) begin
-      buffer <= 0;
+      background_buffer <= 0;
+      mask_buffer <= 0;
+
       buffer_count <= 0;
     end else begin
       reg [2:0] new_buffer_count;
 
       prev_sd_data_available <= sd_data_available;
-      prev_hblank <= hblank;
+      prev_hblank <= hblank_int;
 
       new_buffer_count = buffer_count;
 
@@ -102,7 +127,10 @@ module gameandwatch (
       buffer_count <= new_buffer_count;
 
       if (sd_data_available) begin
-        buffer <= {sd_out, buffer[47:16]};
+        // Background is low byte
+        background_buffer <= {sd_out[7:0], background_buffer[23:8]};
+        mask_buffer <= {sd_out[15:8], mask_buffer[23:8]};
+
         buffer_count <= new_buffer_count + 3'h1;
 
         sd_read_count <= sd_read_count + 16'h1;
@@ -119,11 +147,12 @@ module gameandwatch (
         end
       end
 
-      if (hblank && ~prev_hblank) begin
+      if (hblank_int && ~prev_hblank) begin
         sd_rd <= 1;
 
         // For easy debugging
-        buffer <= 0;
+        background_buffer <= 0;
+        mask_buffer <= 0;
         buffer_count <= 0;
 
         sd_read_count <= 0;
@@ -135,10 +164,9 @@ module gameandwatch (
 
   // Address of the next line of the image
   // Address calculates the number of bytes (not words) so we have full precision
-  // Will never set the lowest bit, so we are fine to drop it to go to word addressing
-  // wire [9:0] read_y = video_y >= 10'd720 ? 10'b0 : video_y + 10'h1;
+  // Essentually multiply by two, then divide by to for interleaved data, then byte addressing
   wire [9:0] read_y = video_y >= 10'd720 ? 10'b0 : video_y;
-  wire [25:0] read_byte_addr = {16'b0, read_y} * 26'd720 * 26'h3;
+  wire [25:0] read_byte_addr = {16'b0, read_y} * 26'd720 * 26'h3 * 26'h2;
   wire [24:0] read_addr = read_byte_addr[25:1] + {9'b0, sd_read_count};
 
   sdram_burst #(

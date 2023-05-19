@@ -47,18 +47,20 @@ module image_fifo (
 	q,
 	rdempty,
 	rdusedw,
-	wrfull);
+	wrfull,
+	wrusedw);
 
 	input	  aclr;
-	input	[47:0]  data;
+	input	[23:0]  data;
 	input	  rdclk;
 	input	  rdreq;
 	input	  wrclk;
 	input	  wrreq;
 	output	[23:0]  q;
 	output	  rdempty;
-	output	[10:0]  rdusedw;
+	output	[9:0]  rdusedw;
 	output	  wrfull;
+	output	[9:0]  wrusedw;
 `ifndef ALTERA_RESERVED_QIS
 // synopsys translate_off
 `endif
@@ -69,12 +71,14 @@ module image_fifo (
 
 	wire [23:0] sub_wire0;
 	wire  sub_wire1;
-	wire [10:0] sub_wire2;
+	wire [9:0] sub_wire2;
 	wire  sub_wire3;
+	wire [9:0] sub_wire4;
 	wire [23:0] q = sub_wire0[23:0];
 	wire  rdempty = sub_wire1;
-	wire [10:0] rdusedw = sub_wire2[10:0];
+	wire [9:0] rdusedw = sub_wire2[9:0];
 	wire  wrfull = sub_wire3;
+	wire [9:0] wrusedw = sub_wire4[9:0];
 
 	dcfifo_mixed_widths	dcfifo_mixed_widths_component (
 				.aclr (aclr),
@@ -87,18 +91,18 @@ module image_fifo (
 				.rdempty (sub_wire1),
 				.rdusedw (sub_wire2),
 				.wrfull (sub_wire3),
+				.wrusedw (sub_wire4),
 				.eccstatus (),
 				.rdfull (),
-				.wrempty (),
-				.wrusedw ());
+				.wrempty ());
 	defparam
 		dcfifo_mixed_widths_component.intended_device_family = "Cyclone V",
 		dcfifo_mixed_widths_component.lpm_numwords = 1024,
 		dcfifo_mixed_widths_component.lpm_showahead = "OFF",
 		dcfifo_mixed_widths_component.lpm_type = "dcfifo_mixed_widths",
-		dcfifo_mixed_widths_component.lpm_width = 48,
+		dcfifo_mixed_widths_component.lpm_width = 24,
 		dcfifo_mixed_widths_component.lpm_widthu = 10,
-		dcfifo_mixed_widths_component.lpm_widthu_r = 11,
+		dcfifo_mixed_widths_component.lpm_widthu_r = 10,
 		dcfifo_mixed_widths_component.lpm_width_r = 24,
 		dcfifo_mixed_widths_component.overflow_checking = "ON",
 		dcfifo_mixed_widths_component.rdsync_delaypipe = 3,
@@ -133,7 +137,7 @@ endmodule
 // Retrieval info: PRIVATE: SYNTH_WRAPPER_GEN_POSTFIX STRING "0"
 // Retrieval info: PRIVATE: UNDERFLOW_CHECKING NUMERIC "0"
 // Retrieval info: PRIVATE: UsedW NUMERIC "1"
-// Retrieval info: PRIVATE: Width NUMERIC "48"
+// Retrieval info: PRIVATE: Width NUMERIC "24"
 // Retrieval info: PRIVATE: dc_aclr NUMERIC "1"
 // Retrieval info: PRIVATE: diff_widths NUMERIC "1"
 // Retrieval info: PRIVATE: msb_usedw NUMERIC "0"
@@ -145,15 +149,15 @@ endmodule
 // Retrieval info: PRIVATE: sc_sclr NUMERIC "0"
 // Retrieval info: PRIVATE: wsEmpty NUMERIC "0"
 // Retrieval info: PRIVATE: wsFull NUMERIC "1"
-// Retrieval info: PRIVATE: wsUsedW NUMERIC "0"
+// Retrieval info: PRIVATE: wsUsedW NUMERIC "1"
 // Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 // Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone V"
 // Retrieval info: CONSTANT: LPM_NUMWORDS NUMERIC "1024"
 // Retrieval info: CONSTANT: LPM_SHOWAHEAD STRING "OFF"
 // Retrieval info: CONSTANT: LPM_TYPE STRING "dcfifo_mixed_widths"
-// Retrieval info: CONSTANT: LPM_WIDTH NUMERIC "48"
+// Retrieval info: CONSTANT: LPM_WIDTH NUMERIC "24"
 // Retrieval info: CONSTANT: LPM_WIDTHU NUMERIC "10"
-// Retrieval info: CONSTANT: LPM_WIDTHU_R NUMERIC "11"
+// Retrieval info: CONSTANT: LPM_WIDTHU_R NUMERIC "10"
 // Retrieval info: CONSTANT: LPM_WIDTH_R NUMERIC "24"
 // Retrieval info: CONSTANT: OVERFLOW_CHECKING STRING "ON"
 // Retrieval info: CONSTANT: RDSYNC_DELAYPIPE NUMERIC "3"
@@ -163,25 +167,27 @@ endmodule
 // Retrieval info: CONSTANT: WRITE_ACLR_SYNCH STRING "OFF"
 // Retrieval info: CONSTANT: WRSYNC_DELAYPIPE NUMERIC "3"
 // Retrieval info: USED_PORT: aclr 0 0 0 0 INPUT GND "aclr"
-// Retrieval info: USED_PORT: data 0 0 48 0 INPUT NODEFVAL "data[47..0]"
+// Retrieval info: USED_PORT: data 0 0 24 0 INPUT NODEFVAL "data[23..0]"
 // Retrieval info: USED_PORT: q 0 0 24 0 OUTPUT NODEFVAL "q[23..0]"
 // Retrieval info: USED_PORT: rdclk 0 0 0 0 INPUT NODEFVAL "rdclk"
 // Retrieval info: USED_PORT: rdempty 0 0 0 0 OUTPUT NODEFVAL "rdempty"
 // Retrieval info: USED_PORT: rdreq 0 0 0 0 INPUT NODEFVAL "rdreq"
-// Retrieval info: USED_PORT: rdusedw 0 0 11 0 OUTPUT NODEFVAL "rdusedw[10..0]"
+// Retrieval info: USED_PORT: rdusedw 0 0 10 0 OUTPUT NODEFVAL "rdusedw[9..0]"
 // Retrieval info: USED_PORT: wrclk 0 0 0 0 INPUT NODEFVAL "wrclk"
 // Retrieval info: USED_PORT: wrfull 0 0 0 0 OUTPUT NODEFVAL "wrfull"
 // Retrieval info: USED_PORT: wrreq 0 0 0 0 INPUT NODEFVAL "wrreq"
+// Retrieval info: USED_PORT: wrusedw 0 0 10 0 OUTPUT NODEFVAL "wrusedw[9..0]"
 // Retrieval info: CONNECT: @aclr 0 0 0 0 aclr 0 0 0 0
-// Retrieval info: CONNECT: @data 0 0 48 0 data 0 0 48 0
+// Retrieval info: CONNECT: @data 0 0 24 0 data 0 0 24 0
 // Retrieval info: CONNECT: @rdclk 0 0 0 0 rdclk 0 0 0 0
 // Retrieval info: CONNECT: @rdreq 0 0 0 0 rdreq 0 0 0 0
 // Retrieval info: CONNECT: @wrclk 0 0 0 0 wrclk 0 0 0 0
 // Retrieval info: CONNECT: @wrreq 0 0 0 0 wrreq 0 0 0 0
 // Retrieval info: CONNECT: q 0 0 24 0 @q 0 0 24 0
 // Retrieval info: CONNECT: rdempty 0 0 0 0 @rdempty 0 0 0 0
-// Retrieval info: CONNECT: rdusedw 0 0 11 0 @rdusedw 0 0 11 0
+// Retrieval info: CONNECT: rdusedw 0 0 10 0 @rdusedw 0 0 10 0
 // Retrieval info: CONNECT: wrfull 0 0 0 0 @wrfull 0 0 0 0
+// Retrieval info: CONNECT: wrusedw 0 0 10 0 @wrusedw 0 0 10 0
 // Retrieval info: GEN_FILE: TYPE_NORMAL image_fifo.v TRUE
 // Retrieval info: GEN_FILE: TYPE_NORMAL image_fifo.inc FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL image_fifo.cmp FALSE
