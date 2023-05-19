@@ -22,7 +22,7 @@
         "--mame-path",
         "/Users/adam/Downloads/Mame 252/",
         "specific",
-        "gnw_cgrab"
+        "gnw_dkjr"
       ],
       "cwd": "${workspaceFolder}/support",
       "sourceLanguages": ["rust"]

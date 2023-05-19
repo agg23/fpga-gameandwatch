@@ -5,27 +5,36 @@ use std::{
 };
 
 use resvg::{
-    tiny_skia::{self, Pixmap},
-    usvg::{self, TreeParsing},
+    tiny_skia::{self, Pixmap, PixmapPaint, PremultipliedColorU8},
+    usvg::{self, Color, NormalizedF64, ShapeRendering, TreeParsing},
     FitTo,
 };
 
 use svg::{self, node::element::tag::Type};
+use tiny_skia_path::Transform;
 
-pub fn build_svg(svg_path: &Path, width: u32, height: u32) -> Pixmap {
-    let mut svg_id_to_title: HashMap<String, u8> = HashMap::new();
+use crate::{render::ImageDimensions, HEIGHT, WIDTH};
+
+pub struct RenderedSVG {
+    pub pixmap: Pixmap,
+    pub pixel_pos_to_id: Vec<u16>,
+}
+
+pub fn build_svg(svg_path: &Path, dimensions: &ImageDimensions) -> RenderedSVG {
+    // Actual SVG ID (so `path123`) to title field (the segment ID)
+    let mut svg_id_to_title: HashMap<String, u16> = HashMap::new();
 
     #[derive(PartialEq, Debug)]
     struct ActiveGroup {
         id: Option<String>,
-        title: Option<u8>,
+        title: Option<u16>,
         paths: HashSet<String>,
     }
 
     #[derive(PartialEq, Debug)]
     struct ActivePath {
         id: Option<String>,
-        title: Option<u8>,
+        title: Option<u16>,
     }
 
     let mut group_stack: Vec<ActiveGroup> = vec![];
@@ -128,6 +137,7 @@ pub fn build_svg(svg_path: &Path, width: u32, height: u32) -> Pixmap {
     }
 
     let tree = usvg::Tree::from_str(&svg_contents, &usvg::Options::default()).unwrap();
+    let mut svg_title_to_color = HashMap::<u16, Color>::new();
 
     // Clear unnecessary nodes
     for node in tree.root.descendants() {
@@ -138,23 +148,149 @@ pub fn build_svg(svg_path: &Path, width: u32, height: u32) -> Pixmap {
 
     // Set path colors
     for node in tree.root.descendants() {
-        mutate_usvg_node(&node, &svg_id_to_title);
+        mutate_usvg_node(&node, &svg_id_to_title, &mut svg_title_to_color);
     }
 
     // This scales proportionally, which is not always what MAME does (gnw_cgrab)
-    let mut pixmap = Pixmap::new(width, height).unwrap();
+    let mut render_pixmap = Pixmap::new(dimensions.width, dimensions.height).unwrap();
     resvg::render(
         &tree,
-        FitTo::Size(width, height),
+        FitTo::Size(dimensions.width, dimensions.height),
         tiny_skia::Transform::default(),
-        pixmap.as_mut(),
+        render_pixmap.as_mut(),
     )
-    .unwrap();
+    .expect("Could not render SVG to bitmap");
 
-    pixmap
+    // This is inefficient, but it transforms the coordinates for us
+    let mut mask_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
+    mask_pixmap.draw_pixmap(
+        dimensions.x,
+        dimensions.y,
+        render_pixmap.as_ref(),
+        &PixmapPaint::default(),
+        Transform::identity(),
+        None,
+    );
+
+    mask_pixmap.save_png("outputtest.png");
+
+    let mut pixel_pos_to_id: Vec<u16> = vec![0; WIDTH * HEIGHT];
+
+    let pixels = mask_pixmap.pixels_mut();
+
+    for i in 0..WIDTH * HEIGHT {
+        let pixel = pixels[i];
+        if pixel.alpha() == 0 {
+            // Skip this pixel
+            continue;
+        }
+
+        // // Check neighbors
+        // let compare = |x: Option<PremultipliedColorU8>| {
+        //     if let Some(x) = x {
+        //         x.green() == pixel.green() && x.blue() == pixel.blue()
+        //     } else {
+        //         false
+        //     }
+        // };
+
+        // let left = if i > 0 {
+        //     Some(pixels[i - 1].clone())
+        // } else {
+        //     None
+        // };
+
+        // let right = if i < WIDTH * HEIGHT - 1 {
+        //     Some(pixels[i + 1].clone())
+        // } else {
+        //     None
+        // };
+
+        // let top = if i >= WIDTH {
+        //     Some(pixels[i - WIDTH].clone())
+        // } else {
+        //     None
+        // };
+
+        // let bottom = if i + WIDTH < WIDTH * HEIGHT {
+        //     Some(pixels[i + WIDTH].clone())
+        // } else {
+        //     None
+        // };
+
+        // let directions = [left, right, top, bottom];
+        // let mut matching_neighbor = false;
+        // let mut direction_colors: Vec<PremultipliedColorU8> = vec![];
+
+        // for direction in directions {
+        //     if compare(direction) {
+        //         matching_neighbor = true;
+        //     }
+
+        //     if let Some(color) = direction {
+        //         if color.alpha() != 0 {
+        //             // Rendered pixel
+        //             direction_colors.push(color);
+        //         }
+        //     }
+        // }
+
+        // if !matching_neighbor {
+        //     if direction_colors.len() < 1 {
+        //         let id = (pixel.green() as u16) << 8 | pixel.blue() as u16;
+
+        //         println!(
+        //             "Isolated color with ID {} at index {i}. Dropping from mask",
+        //             build_title(id)
+        //         );
+
+        //         continue;
+        //     } else {
+        //         // Switch to sibling color to one with highest alpha
+        //         println!("Switching with sibling at index {i}");
+        //         let mut max_alpha_color = direction_colors[0];
+        //         for color in direction_colors {
+        //             if color.alpha() > max_alpha_color.alpha() {
+        //                 max_alpha_color = color;
+        //             }
+        //         }
+        //         pixels[i] = max_alpha_color;
+        //     }
+        // }
+
+        let id = (pixel.green() as u16) << 8 | pixel.blue() as u16;
+
+        // Copy id to a pixel indexed array
+        pixel_pos_to_id[i] = id;
+
+        if let Some(color) = svg_title_to_color.get(&id) {
+            pixels[i] =
+                PremultipliedColorU8::from_rgba(color.red, color.green, color.blue, 255).unwrap();
+        } else {
+            let title = build_title(id);
+            println!("{} {}", pixel.blue(), pixel.green());
+            println!(
+                "Could not find color for pixel at index {i} using title {title}. Setting to black"
+            );
+            pixels[i] = PremultipliedColorU8::from_rgba(0, 0, 0, 255).unwrap();
+        }
+    }
+
+    RenderedSVG {
+        pixmap: mask_pixmap,
+        pixel_pos_to_id,
+    }
 }
 
-fn parse_title(title: &str) -> Option<u8> {
+fn build_title(id: u16) -> String {
+    let h = id & 0x3;
+    let column = (id >> 2) & 0xF;
+    let segments = (id >> 6) & 0xF;
+
+    format!("{segments}.{column}.{h}")
+}
+
+fn parse_title(title: &str) -> Option<u16> {
     let mut sections = title.split(".");
 
     guard!(let Ok(segment) = sections.next()?.parse::<u8>() else {
@@ -162,10 +298,12 @@ fn parse_title(title: &str) -> Option<u8> {
         return None;
     });
 
-    if segment > 2 {
+    if segment > 15 {
         println!("Segment {segment} in {title} was out of bounds");
         return None;
     }
+
+    let segment = segment as u16;
 
     guard!(let Ok(column) = sections.next()?.parse::<u8>() else {
         println!("Could not parse column from title {title}");
@@ -177,6 +315,8 @@ fn parse_title(title: &str) -> Option<u8> {
         return None;
     }
 
+    let column = column as u16;
+
     guard!(let Ok(row_h) = sections.next()?.parse::<u8>() else {
         println!("Could not parse row_h from title {title}");
         return None;
@@ -187,12 +327,14 @@ fn parse_title(title: &str) -> Option<u8> {
         return None;
     }
 
+    let row_h = row_h as u16;
+
     assert_eq!(sections.next(), None, "Title contained too many groups");
 
     return Some((segment << 6) | (column << 2) | row_h);
 }
 
-fn keep_usvg_node(node: &usvg::Node, svg_id_to_title: &HashMap<String, u8>) -> bool {
+fn keep_usvg_node(node: &usvg::Node, svg_id_to_title: &HashMap<String, u16>) -> bool {
     match *node.borrow() {
         usvg::NodeKind::Path(ref path) => {
             if path.id.is_empty() {
@@ -209,8 +351,12 @@ fn keep_usvg_node(node: &usvg::Node, svg_id_to_title: &HashMap<String, u8>) -> b
     return true;
 }
 
-// Sets the color to the title byte
-fn mutate_usvg_node(node: &usvg::Node, svg_id_to_title: &HashMap<String, u8>) {
+/// Sets the node color to contain the title byte and stores this color by id
+fn mutate_usvg_node(
+    node: &usvg::Node,
+    svg_id_to_title: &HashMap<String, u16>,
+    svg_title_to_color: &mut HashMap<u16, Color>,
+) {
     match &mut *node.borrow_mut() {
         usvg::NodeKind::Path(ref mut path) => {
             // Check if we care about this path
@@ -218,19 +364,45 @@ fn mutate_usvg_node(node: &usvg::Node, svg_id_to_title: &HashMap<String, u8>) {
                 return;
             });
 
+            // Disable antialiasing, which will change colors
+            path.rendering_mode = ShapeRendering::CrispEdges;
+
             let paint = usvg::Paint::Color(usvg::Color {
-                red: *title,
-                green: *title,
-                blue: *title,
+                red: 0,
+                green: (((title >> 8) & 0xFF) as u8),
+                blue: (title & 0xFF) as u8,
             });
 
             // Encode the title byte into the color
             if let Some(fill) = &mut path.fill {
-                fill.paint = paint.clone();
-            }
+                // Save existing fill to use in the output images
+                let color = match &fill.paint {
+                    usvg::Paint::Color(color) => {
+                        // Normalize alpha
+                        let alpha = fill.opacity.get();
+                        let red_float = (color.red as f64) * alpha;
+                        let green_float = (color.green as f64) * alpha;
+                        let blue_float = (color.blue as f64) * alpha;
 
-            if let Some(stroke) = &mut path.stroke {
-                stroke.paint = paint;
+                        Color {
+                            red: red_float.round() as u8,
+                            green: green_float.round() as u8,
+                            blue: blue_float.round() as u8,
+                        }
+                    }
+                    value => {
+                        println!("Unexpected color {value:?}. Using black");
+                        Color {
+                            red: 255,
+                            green: 255,
+                            blue: 255,
+                        }
+                    }
+                };
+                svg_title_to_color.insert(*title, color);
+
+                fill.paint = paint.clone();
+                fill.opacity = NormalizedF64::new(1.0).unwrap();
             }
         }
         _ => {}

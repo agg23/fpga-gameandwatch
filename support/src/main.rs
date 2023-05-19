@@ -20,8 +20,8 @@ mod manifest;
 mod render;
 mod svg_manage;
 
-static WIDTH: usize = 720;
-static HEIGHT: usize = WIDTH;
+const WIDTH: usize = 720;
+const HEIGHT: usize = WIDTH;
 
 #[derive(Subcommand, Clone, Debug)]
 enum FilterArg {

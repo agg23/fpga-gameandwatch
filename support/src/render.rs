@@ -105,6 +105,9 @@ pub fn render(
     // Keep track of which refs have already been added to the image, as most layouts contain multiple duplicates
     let mut already_applied_refs = HashSet::<&String>::new();
 
+    // Keep track of the set of pixels that make up each screen
+    let mut screen_pixel_ids: Vec<u16> = vec![0; WIDTH * HEIGHT];
+
     let mut background_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
     let mut mask_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
 
@@ -126,7 +129,8 @@ pub fn render(
                         continue;
                     }
                     value => {
-                        if value.starts_with("fix") || value.starts_with("gradient") {
+                        // value.starts_with("fix") ||
+                        if value.starts_with("gradient") {
                             println!("Ignoring element by name {}", element.ref_name);
                             continue;
                         }
@@ -151,7 +155,13 @@ pub fn render(
                 )
                 .expect("Could not convert image data");
 
-                let dimensions = ImageDimensions::new(&view_bounds, &element.bounds.to_xy(), ratio);
+                let dimensions = ImageDimensions::new(
+                    &view_bounds,
+                    &element.bounds.to_xy(),
+                    ratio,
+                    x_offset,
+                    y_offset,
+                );
 
                 let image = DynamicImage::ImageRgba8(image).resize_exact(
                     dimensions.width,
@@ -170,14 +180,37 @@ pub fn render(
                     return Err(format!("Could not convert PNG into Pixmap"));
                 });
 
-                background_pixmap.draw_pixmap(
-                    dimensions.x + x_offset,
-                    dimensions.y + y_offset,
+                let mut aligned_image_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
+
+                // This is inefficient, but I don't want to calculate the bounds changes
+                aligned_image_pixmap.draw_pixmap(
+                    dimensions.x,
+                    dimensions.y,
                     image_map.as_ref(),
-                    &blend_to_pixmap_paint(&element.blend),
+                    &PixmapPaint::default(),
                     Transform::identity(),
                     None,
                 );
+
+                // We have to go pixel by pixel and check if they're in the mask
+                let pixels = aligned_image_pixmap.pixels();
+                for i in 0..WIDTH * HEIGHT {
+                    let pixel = pixels[i];
+                    if pixel.alpha() == 0 {
+                        continue;
+                    }
+
+                    if screen_pixel_ids[i] > 0 {
+                        // A mask pixel is at this location
+                        mask_pixmap.pixels_mut()[i] = pixel;
+
+                        // Also write through to the background
+                        background_pixmap.pixels_mut()[i] = pixel;
+                    } else {
+                        // No mask pixel, write to background
+                        background_pixmap.pixels_mut()[i] = pixel;
+                    }
+                }
             }
             ViewElement::Screen(screen) => {
                 let file_path = asset_dir.join("foo").with_file_name(screen_filename(
@@ -188,34 +221,66 @@ pub fn render(
 
                 let bounds = screen.bounds.to_xy();
 
-                let dimensions = ImageDimensions::new(
-                    &view_bounds,
-                    &bounds,
-                    ratio,
-                    // We don't care about image dimensions for SVG
-                );
+                let dimensions =
+                    ImageDimensions::new(&view_bounds, &bounds, ratio, x_offset, y_offset);
 
                 // TODO: We don't really have a way to scale SVGs that won't result in a quality loss
                 // so that isn't handled here
-                let svg_map = build_svg(&file_path, dimensions.width, dimensions.height);
+                let rendered_svg = build_svg(&file_path, &dimensions);
 
+                // Draw actual LCD pixels
                 mask_pixmap.draw_pixmap(
-                    dimensions.x + x_offset,
-                    dimensions.y + y_offset,
-                    svg_map.as_ref(),
+                    // This image is already aligned
+                    0,
+                    0,
+                    rendered_svg.pixmap.as_ref(),
                     &PixmapPaint::default(),
                     Transform::identity(),
                     None,
                 );
+
+                // Combine this screen into the global pixel ID map
+                // If both have IDs, latest wins
+                for i in 0..WIDTH * HEIGHT {
+                    let new_svg_id = rendered_svg.pixel_pos_to_id[i];
+
+                    if new_svg_id > 0 {
+                        // Use this, replacing any existing pixel
+                        screen_pixel_ids[i] = new_svg_id;
+                    }
+                }
             }
             ViewElement::Bounds(_) => {}
         }
     }
 
-    // let debug_path = asset_dir.join(format!("{platform_name}.png"));
+    let mut debug_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
 
-    // background_pixmap.save_png(&debug_path).unwrap();
-    // background_pixmap.data()
+    debug_pixmap.draw_pixmap(
+        0,
+        0,
+        background_pixmap.as_ref(),
+        &PixmapPaint::default(),
+        Transform::identity(),
+        None,
+    );
+
+    debug_pixmap.draw_pixmap(
+        0,
+        0,
+        mask_pixmap.as_ref(),
+        &PixmapPaint::default(),
+        Transform::identity(),
+        None,
+    );
+
+    let debug_path = asset_dir.join(format!("{platform_name}.png"));
+    let debug_background_path = asset_dir.join(format!("{platform_name}_background.png"));
+    let debug_mask_path = asset_dir.join(format!("{platform_name}_mask.png"));
+
+    debug_pixmap.save_png(&debug_path).unwrap();
+    background_pixmap.save_png(&debug_background_path).unwrap();
+    mask_pixmap.save_png(&debug_mask_path).unwrap();
 
     Ok(encode(
         background_pixmap.data(),
@@ -266,15 +331,22 @@ fn blend_to_pixmap_paint(blend: &Option<BlendType>) -> PixmapPaint {
     paint
 }
 
-struct ImageDimensions {
-    x: i32,
-    y: i32,
-    width: u32,
-    height: u32,
+#[derive(Clone)]
+pub struct ImageDimensions {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
 }
 
 impl ImageDimensions {
-    fn new(view_bounds: &Bounds, bounds: &Bounds, ratio: f32) -> Self {
+    fn new(
+        view_bounds: &Bounds,
+        bounds: &Bounds,
+        ratio: f32,
+        x_offset: i32,
+        y_offset: i32,
+    ) -> Self {
         let x = ((bounds.x as i32 - view_bounds.x as i32) as f32 * ratio).round() as i32;
         let y = ((bounds.y as i32 - view_bounds.y as i32) as f32 * ratio).round() as i32;
         let width = (bounds.width as f32 * ratio) as u32;
@@ -289,8 +361,8 @@ impl ImageDimensions {
         }
 
         ImageDimensions {
-            x,
-            y,
+            x: x + x_offset,
+            y: y + y_offset,
             width,
             height,
         }
