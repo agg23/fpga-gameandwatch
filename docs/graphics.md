@@ -6,3 +6,4 @@ MAME Game and Watch ROMs contain SVGs with the LCD assets. Each of the paths hav
 
 Notes:
 1. A path does not have to have a title tag. It can be part of a group that has a title tag
+2. These values fitting into 8 bits does not seem true with the SM5a, but I haven't yet determined why

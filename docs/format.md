@@ -5,7 +5,7 @@ At dest 131.072MHz, we take 18 * 7.63ns = 140ns per 16 bytes, or 8.75ns per byte
 Our video clock is 32.768MHz. We need a full pixel (3 bytes) every clock (30.5ns, so 10ns per byte)
 
 ```
-line 10: [id 8bit][color 4bit][x 10bit][length 10bit]...next
+line 10: [id 10bit][x 10bit][y 10bit][length 10bit]...next
 ```
 
 ## Config

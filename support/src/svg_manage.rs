@@ -17,7 +17,7 @@ use crate::{render::ImageDimensions, HEIGHT, WIDTH};
 
 pub struct RenderedSVG {
     pub pixmap: Pixmap,
-    pub pixel_pos_to_id: Vec<u16>,
+    pub pixel_pos_to_id: Vec<Option<u16>>,
 }
 
 pub fn build_svg(svg_path: &Path, dimensions: &ImageDimensions) -> RenderedSVG {
@@ -174,7 +174,7 @@ pub fn build_svg(svg_path: &Path, dimensions: &ImageDimensions) -> RenderedSVG {
 
     mask_pixmap.save_png("outputtest.png");
 
-    let mut pixel_pos_to_id: Vec<u16> = vec![0; WIDTH * HEIGHT];
+    let mut pixel_pos_to_id: Vec<Option<u16>> = vec![None; WIDTH * HEIGHT];
 
     let pixels = mask_pixmap.pixels_mut();
 
@@ -261,7 +261,7 @@ pub fn build_svg(svg_path: &Path, dimensions: &ImageDimensions) -> RenderedSVG {
         let id = (pixel.green() as u16) << 8 | pixel.blue() as u16;
 
         // Copy id to a pixel indexed array
-        pixel_pos_to_id[i] = id;
+        pixel_pos_to_id[i] = Some(id);
 
         if let Some(color) = svg_title_to_color.get(&id) {
             pixels[i] =

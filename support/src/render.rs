@@ -106,7 +106,7 @@ pub fn render(
     let mut already_applied_refs = HashSet::<&String>::new();
 
     // Keep track of the set of pixels that make up each screen
-    let mut screen_pixel_ids: Vec<u16> = vec![0; WIDTH * HEIGHT];
+    let mut pixels_to_mask_id: Vec<Option<u16>> = vec![None; WIDTH * HEIGHT];
 
     let mut background_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
     let mut mask_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
@@ -129,8 +129,7 @@ pub fn render(
                         continue;
                     }
                     value => {
-                        // value.starts_with("fix") ||
-                        if value.starts_with("gradient") {
+                        if value.starts_with("fix") || value.starts_with("gradient") {
                             println!("Ignoring element by name {}", element.ref_name);
                             continue;
                         }
@@ -200,7 +199,7 @@ pub fn render(
                         continue;
                     }
 
-                    if screen_pixel_ids[i] > 0 {
+                    if pixels_to_mask_id[i].is_some() {
                         // A mask pixel is at this location
                         mask_pixmap.pixels_mut()[i] = pixel;
 
@@ -242,11 +241,9 @@ pub fn render(
                 // Combine this screen into the global pixel ID map
                 // If both have IDs, latest wins
                 for i in 0..WIDTH * HEIGHT {
-                    let new_svg_id = rendered_svg.pixel_pos_to_id[i];
-
-                    if new_svg_id > 0 {
+                    if let Some(new_svg_id) = rendered_svg.pixel_pos_to_id[i] {
                         // Use this, replacing any existing pixel
-                        screen_pixel_ids[i] = new_svg_id;
+                        pixels_to_mask_id[i] = Some(new_svg_id);
                     }
                 }
             }
@@ -285,6 +282,7 @@ pub fn render(
     Ok(encode(
         background_pixmap.data(),
         mask_pixmap.data(),
+        pixels_to_mask_id.as_slice(),
         asset_dir,
     ))
 
