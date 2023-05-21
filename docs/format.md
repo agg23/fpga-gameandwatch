@@ -14,7 +14,7 @@ First bit is version. Spec V1 is as follows:
 
 ```
 0x0: [version 8 bits (01)][mpu 8 bits][screen configuration 8 bits][screen width|screen height 24 bits][reserved 16 bits]
-0x8: [s input mapping 40 bytes]
+0x8: [input mapping 40 bytes]
 0x30: Start of reserved space
 0x100: Start of byte interleaved images
 0x17BC00: If dual screen, start of image 2, otherwise middle of image
@@ -43,6 +43,8 @@ First bit is version. Spec V1 is as follows:
 | Single screen   | `0x0`       |
 | Dual Horizontal | `0x1`       |
 | Dual Vertical   | `0x2`       |
+
+12 bits each for screen width/height
 
 ### Input Mapping
 

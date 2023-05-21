@@ -49,6 +49,27 @@ module gameandwatch (
     output wire        SDRAM_CKE,
     output wire        SDRAM_CLK
 );
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Loading and config
+
+  wire [24:0] base_addr;
+  wire image_download;
+  wire mask_config_download;
+  // TODO: Use
+  wire rom_download;
+
+  rom_loader rom_loader (
+      .clk(clk_sys_131_072),
+
+      .ioctl_wr  (ioctl_wr),
+      .ioctl_addr(ioctl_addr),
+      .ioctl_dout(ioctl_dout),
+
+      .base_addr(base_addr),
+      .image_download(image_download),
+      .mask_config_download(mask_config_download),
+      .rom_download(rom_download)
+  );
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // Mask
@@ -58,8 +79,7 @@ module gameandwatch (
   mask mask (
       .clk(clk_sys_131_072),
 
-      .ioctl_wr  (ioctl_wr),
-      .ioctl_addr(ioctl_addr),
+      .ioctl_wr  (mask_config_download && ioctl_wr),
       .ioctl_dout(ioctl_dout),
 
       .vblank (vblank_int),
@@ -194,6 +214,8 @@ module gameandwatch (
   wire [25:0] read_byte_addr = {16'b0, read_y} * 26'd720 * 26'h3 * 26'h2  /* synthesis keep */;
   wire [24:0] read_addr = read_byte_addr[25:1] + {9'b0, sd_read_count};
 
+  wire sdram_wr = ioctl_wr && image_download;
+
   sdram_burst #(
       .CLOCK_SPEED_MHZ(131.072),
       .CAS_LATENCY(3)
@@ -202,12 +224,12 @@ module gameandwatch (
       .reset(~pll_core_locked),
 
       // Port 0
-      .p0_addr(ioctl_wr ? ioctl_addr : read_addr),
+      .p0_addr(sdram_wr ? base_addr : read_addr),
       .p0_data(ioctl_dout),
       .p0_byte_en(2'b11),
       .p0_q(sd_out),
 
-      .p0_wr_req(ioctl_wr),
+      .p0_wr_req(sdram_wr),
       .p0_rd_req(sd_rd),
       .p0_end_burst_req(sd_end_burst),
 

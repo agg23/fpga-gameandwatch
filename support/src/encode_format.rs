@@ -144,15 +144,15 @@ fn build_config(platform: &PlatformSpecification) -> Result<Vec<u8>, String> {
                 if let Some(action) = action {
                     config.push(input_value_for_port(action));
                 } else {
-                    config.push(0);
+                    config.push(0x7F);
                 }
             }
         } else {
             // Write 4 zeros
-            config.push(0);
-            config.push(0);
-            config.push(0);
-            config.push(0);
+            config.push(0x7F);
+            config.push(0x7F);
+            config.push(0x7F);
+            config.push(0x7F);
         }
     }
 

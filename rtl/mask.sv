@@ -1,11 +1,9 @@
 module mask #(
-    parameter START_ADDRESS = 25'h17BB00,
-    parameter CLOCK_RATIO   = 4
+    parameter CLOCK_RATIO = 4
 ) (
     input wire clk,
 
     input wire        ioctl_wr,
-    input wire [24:0] ioctl_addr,
     input wire [15:0] ioctl_dout,
 
     input wire vblank,
@@ -44,7 +42,7 @@ module mask #(
   reg [ 1:0] buffer_16_bytes = 0;
 
   always @(posedge clk) begin
-    if (ioctl_wr && ioctl_addr >= START_ADDRESS) begin
+    if (ioctl_wr) begin
       buffer_16 <= ioctl_dout;
       buffer_16_bytes <= 2;
     end
