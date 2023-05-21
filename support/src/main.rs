@@ -249,6 +249,7 @@ fn main() {
             background_bytes.data(),
             mask_bytes.data(),
             pixels_to_mask_id.as_slice(),
+            platform,
             &temp_dir,
         );
 

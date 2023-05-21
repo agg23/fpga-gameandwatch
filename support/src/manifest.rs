@@ -7,6 +7,15 @@ pub struct PlatformSpecification {
     pub device: PresetDefinition,
     pub port_map: PlatformPortMapping,
     pub metadata: Metdata,
+    pub rom: ROMName,
+}
+
+/* ROM */
+
+#[derive(Debug, Deserialize)]
+pub struct ROMName {
+    pub rom: String,
+    pub melody: Option<String>,
 }
 
 /* Metdata */
@@ -53,7 +62,7 @@ pub enum Screen {
     DualHorizontal { left: Size, right: Size },
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(PartialEq, Debug, Deserialize)]
 pub struct Size {
     pub width: f32,
     pub height: f32,
@@ -86,7 +95,7 @@ pub enum Port {
     },
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NamedAction {
     pub action: Action,
@@ -94,7 +103,7 @@ pub struct NamedAction {
     pub name: Option<String>,
 }
 
-#[derive(PartialEq, Debug, Deserialize)]
+#[derive(PartialEq, Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Action {
     JoyUp,
