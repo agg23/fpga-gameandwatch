@@ -271,10 +271,9 @@ pub fn render(
         None,
     );
 
-    let mut output_mask = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
+    let mut output_mask = background_pixmap.clone();
 
-    output_mask.fill(Color::from_rgba8(255, 255, 255, 255));
-
+    // Draw mask over top of background, so transparency can blend to the correct colors
     output_mask.draw_pixmap(
         0,
         0,

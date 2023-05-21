@@ -387,6 +387,7 @@ dependencies = [
  "colored",
  "guard",
  "image",
+ "rctree",
  "resvg",
  "serde",
  "serde-xml-rs",

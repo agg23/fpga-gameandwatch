@@ -11,6 +11,7 @@ clap = { version = "4.2.7", features = ["derive"] }
 colored = "2.0.0"
 guard = "0.5.1"
 image = { version = "0.24.6", features = ["png"] }
+rctree = "0.5.0"
 resvg = "0.32.0"
 serde = { version = "1.0", features = ["derive"] }
 serde-xml-rs = "0.6.0"
