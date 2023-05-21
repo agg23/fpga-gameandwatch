@@ -32,5 +32,5 @@ First bit is version. Spec V1 is as follows:
 | SM5a                | `0x4`       |
 | SM510 + Tiger       | `0x5`       |
 | SM511 + Tiger 1 bit | `0x6`       |
-| SM511 + Tiger 2 bit | `0x7`        |
+| SM511 + Tiger 2 bit | `0x7`       |
 |                     |             |

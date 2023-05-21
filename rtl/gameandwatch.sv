@@ -190,8 +190,8 @@ module gameandwatch (
   // Address of the next line of the image
   // Address calculates the number of bytes (not words) so we have full precision
   // Essentually multiply by two, then divide by to for interleaved data, then byte addressing
-  wire [9:0] read_y = video_y >= 10'd720 ? 10'b0 : video_y;
-  wire [25:0] read_byte_addr = {16'b0, read_y} * 26'd720 * 26'h3 * 26'h2;
+  wire [9:0] read_y = video_y >= 10'd720 ? 10'b0 : hblank_int ? video_y + 10'h1 : video_y;
+  wire [25:0] read_byte_addr = {16'b0, read_y} * 26'd720 * 26'h3 * 26'h2  /* synthesis keep */;
   wire [24:0] read_addr = read_byte_addr[25:1] + {9'b0, sd_read_count};
 
   sdram_burst #(

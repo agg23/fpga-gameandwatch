@@ -110,7 +110,7 @@ module mask #(
         // Existing segment
         length <= length - 10'h1;
 
-        in_segment <= length > 10'h1;
+        in_segment <= length > 10'h0;
 
         if (length == 10'h1) begin
           read_addr <= read_addr + 15'h1;
