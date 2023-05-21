@@ -52,6 +52,12 @@ export interface PlatformSpecification {
   device: PresetDefinition;
   portMap: PlatformPortMapping;
   metadata: Metadata;
+  rom: ROMName;
+}
+
+export interface ROMName {
+  rom: string;
+  melody: string | undefined;
 }
 
 export interface Metadata {

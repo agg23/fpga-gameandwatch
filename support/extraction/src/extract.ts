@@ -6,6 +6,8 @@ import {
   PlatformSpecification,
 } from "./mame/types";
 import { collapseInputs, parseInputs } from "./mame/inputs";
+import { argv } from "process";
+import { parseRom } from "./mame/roms";
 
 const PORT_SETTINGS_REGEX =
   /INPUT_PORTS_START\(\s+(.*)\s+\)([\s\S]*?)INPUT_PORTS_END/;
@@ -28,7 +30,7 @@ const INSTANCE_CONSTRUCTOR_REGEX_BUILDER = (
 // This tool is constructed out of ad-hoc regex instead of being a clear "select block of a single platform and parse"
 // because the MAME code isn't really laid out in a nice way to do that. So we do the next best thing
 const run = () => {
-  const file = readFileSync("/Users/adam/Downloads/hh_sm510.cpp", "utf8");
+  const file = readFileSync(argv[2], "utf8");
 
   // Get all metadata
   let metadata: {
@@ -114,6 +116,12 @@ const run = () => {
 
       const localMetadata = metadata[device];
 
+      const rom = parseRom(file, device);
+
+      if (!rom) {
+        continue;
+      }
+
       consoles[device] = {
         device: preset,
         portMap: !!portMap
@@ -122,11 +130,19 @@ const run = () => {
               ports: [],
             },
         metadata: localMetadata,
+        rom,
       };
     }
   }
 
   writeFileSync("manifest.json", JSON.stringify(consoles, undefined, 4));
 };
+
+if (argv.length != 3) {
+  console.log(`Received ${argv.length - 2} arguments. Expected 1\n`);
+  console.log("Usage: node extract.js [hh_sm510.cpp path]");
+
+  process.exit(1);
+}
 
 run();

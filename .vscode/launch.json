@@ -10,6 +10,7 @@
       "name": "Launch Extract",
       "skipFiles": ["<node_internals>/**"],
       "program": "${workspaceFolder}/support/extraction/src/extract.ts",
+      "args": ["C:/Users/adam/Downloads/hh_sm510.cpp"],
       "preLaunchTask": "tsc: build - support/extraction/tsconfig.json",
       "outFiles": ["${workspaceFolder}/**/*.js"]
     },
