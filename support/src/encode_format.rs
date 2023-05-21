@@ -5,7 +5,7 @@ use std::{
 
 use bitvec::{
     field::BitField,
-    prelude::{bitvec, Msb0},
+    prelude::{bitvec, Lsb0},
 };
 
 use crate::{HEIGHT, WIDTH};
@@ -21,7 +21,7 @@ pub fn encode(
 
     let mut count = 0;
 
-    let image_block = background_iter
+    let mut image_block = background_iter
         .zip(mask_iter)
         .filter(|_| {
             let prev_count = count;
@@ -37,15 +37,15 @@ pub fn encode(
         .flat_map(|(background_byte, mask_byte)| [*background_byte, *mask_byte])
         .collect::<Vec<u8>>();
 
-    let debug_path = asset_dir.join(format!("dump.bin"));
-
-    fs::write(&debug_path, image_block).unwrap();
-
-    let mask_block = build_mask_map(pixels_to_mask_id);
+    let mut mask_block = build_mask_map(pixels_to_mask_id);
 
     let debug_path = asset_dir.join(format!("dump2.bin"));
+    fs::write(&debug_path, &mask_block).unwrap();
 
-    fs::write(&debug_path, mask_block).unwrap();
+    image_block.append(&mut mask_block);
+
+    let debug_path = asset_dir.join(format!("dump.bin"));
+    fs::write(&debug_path, image_block).unwrap();
 
     debug_path
 }
@@ -82,6 +82,11 @@ fn build_mask_map(pixels_to_mask_id: &[Option<u16>]) -> Vec<u8> {
                     // End entry
                     current_id = None;
 
+                    // println!(
+                    //     "Encoding run {}, id: {id}, length: {length}, x: {start_x}, y: {y}",
+                    //     byte_index / BYTES_PER_ENTRY
+                    // );
+
                     output[byte_index..byte_index + BYTES_PER_ENTRY]
                         .clone_from_slice(&entry_to_bytes(id, length, start_x, y));
 
@@ -108,27 +113,8 @@ fn build_mask_map(pixels_to_mask_id: &[Option<u16>]) -> Vec<u8> {
     output
 }
 
-// fn entry_to_bytes(id: u16, length: usize, start_x: usize) -> Vec<u8> {
-//     let mut data: Vec<u8> = vec![];
-
-//     // line 10: [id 12bit][x 10bit][length 10bit]...next
-//     // id: 12 bits
-//     data.push((id >> 4) as u8);
-
-//     // x: 10 bits - 4 bits id, 4 bits x
-//     data.push(((id << 4) | (start_x as u16 >> 6)) as u8);
-
-//     // length: 10 bits - 6 bits x, 2 bits length
-//     data.push(((start_x << 2) | (length >> 8)) as u8);
-//     // - 8 bits length
-//     data.push((length >> 2) as u8);
-
-//     data
-// }
-
 fn entry_to_bytes(id: u16, length: usize, start_x: usize, y: usize) -> Vec<u8> {
-    let mut data = bitvec![u8, Msb0; 0; 5*8];
-    // let data = bits![u8, Msb0; 5 * 8];
+    let mut data = bitvec![u8, Lsb0; 0; 5*8];
 
     data[0..10].store::<u16>(id);
     data[10..20].store::<u16>(start_x as u16);

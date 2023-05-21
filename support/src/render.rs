@@ -4,7 +4,7 @@ use std::{
 };
 
 use image::{imageops::FilterType, DynamicImage, ImageBuffer, Rgba};
-use resvg::tiny_skia::{BlendMode, Pixmap, PixmapPaint};
+use resvg::tiny_skia::{BlendMode, Color, Pixmap, PixmapPaint};
 use tiny_skia_path::Transform;
 
 use crate::{
@@ -271,17 +271,30 @@ pub fn render(
         None,
     );
 
+    let mut output_mask = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
+
+    output_mask.fill(Color::from_rgba8(255, 255, 255, 255));
+
+    output_mask.draw_pixmap(
+        0,
+        0,
+        mask_pixmap.as_ref(),
+        &PixmapPaint::default(),
+        Transform::identity(),
+        None,
+    );
+
     let debug_path = asset_dir.join(format!("{platform_name}.png"));
     let debug_background_path = asset_dir.join(format!("{platform_name}_background.png"));
     let debug_mask_path = asset_dir.join(format!("{platform_name}_mask.png"));
 
     debug_pixmap.save_png(&debug_path).unwrap();
     background_pixmap.save_png(&debug_background_path).unwrap();
-    mask_pixmap.save_png(&debug_mask_path).unwrap();
+    output_mask.save_png(&debug_mask_path).unwrap();
 
     Ok(encode(
         background_pixmap.data(),
-        mask_pixmap.data(),
+        output_mask.data(),
         pixels_to_mask_id.as_slice(),
         asset_dir,
     ))

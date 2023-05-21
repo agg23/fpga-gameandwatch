@@ -49,6 +49,30 @@ module gameandwatch (
     output wire        SDRAM_CKE,
     output wire        SDRAM_CLK
 );
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Mask
+
+  wire segment_enabled;
+
+  mask mask (
+      .clk(clk_sys_131_072),
+
+      .ioctl_wr  (ioctl_wr),
+      .ioctl_addr(ioctl_addr),
+      .ioctl_dout(ioctl_dout),
+
+      .vblank (vblank_int),
+      .hblank (hblank_int),
+      .video_x(video_x),
+      .video_y(video_y),
+
+      .segment_enabled(segment_enabled)
+  );
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // SDRAM
+
   reg sd_rd = 0;
   reg sd_end_burst = 0;
 
@@ -58,7 +82,7 @@ module gameandwatch (
   wire [23:0] background_rgb;
   wire [23:0] mask_rgb;
 
-  assign rgb = button_a ? mask_rgb : background_rgb;
+  assign rgb = segment_enabled ? mask_rgb : background_rgb;
 
   wire fifo_clear = hblank_int && ~prev_hblank;
 
@@ -160,6 +184,7 @@ module gameandwatch (
     end
   end
 
+  wire [9:0] video_x;
   wire [9:0] video_y;
 
   // Address of the next line of the image
@@ -220,6 +245,7 @@ module gameandwatch (
   video video (
       .clk(clk_vid_32_768),
 
+      .x(video_x),
       .y(video_y),
 
       .hsync (hsync_int),
