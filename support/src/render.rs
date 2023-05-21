@@ -1,26 +1,29 @@
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashSet, path::Path};
 
 use image::{imageops::FilterType, DynamicImage, ImageBuffer, Rgba};
-use resvg::tiny_skia::{BlendMode, Color, Pixmap, PixmapPaint};
+use resvg::tiny_skia::{BlendMode, Pixmap, PixmapPaint};
 use tiny_skia_path::Transform;
 
 use crate::{
-    encode_format::encode,
     layout::{BlendType, Bounds, Element, Screen, View, ViewElement},
     manifest::{self, PresetDefinition},
     svg_manage::build_svg,
     HEIGHT, WIDTH,
 };
 
+pub struct RenderedData {
+    pub background_bytes: Pixmap,
+    pub mask_bytes: Pixmap,
+    pub pixels_to_mask_id: Vec<Option<u16>>,
+}
+
 pub fn render(
     platform_name: &str,
     layout: &View,
     platform: &PresetDefinition,
     asset_dir: &Path,
-) -> Result<PathBuf, String> {
+    debug: bool,
+) -> Result<RenderedData, String> {
     let mut view_bounds: Option<Bounds> = None;
     let mut elements: Vec<&Element> = vec![];
     let mut screens: Vec<&Screen> = vec![];
@@ -283,20 +286,28 @@ pub fn render(
         None,
     );
 
-    let debug_path = asset_dir.join(format!("{platform_name}.png"));
-    let debug_background_path = asset_dir.join(format!("{platform_name}_background.png"));
-    let debug_mask_path = asset_dir.join(format!("{platform_name}_mask.png"));
+    if debug {
+        let debug_path = asset_dir.join(format!("{platform_name}.png"));
+        let debug_background_path = asset_dir.join(format!("{platform_name}_background.png"));
+        let debug_mask_path = asset_dir.join(format!("{platform_name}_mask.png"));
 
-    debug_pixmap.save_png(&debug_path).unwrap();
-    background_pixmap.save_png(&debug_background_path).unwrap();
-    output_mask.save_png(&debug_mask_path).unwrap();
+        debug_pixmap.save_png(&debug_path).unwrap();
+        background_pixmap.save_png(&debug_background_path).unwrap();
+        output_mask.save_png(&debug_mask_path).unwrap();
+    }
 
-    Ok(encode(
-        background_pixmap.data(),
-        output_mask.data(),
-        pixels_to_mask_id.as_slice(),
-        asset_dir,
-    ))
+    // Ok(encode(
+    //     background_pixmap.data(),
+    //     output_mask.data(),
+    //     pixels_to_mask_id.as_slice(),
+    //     asset_dir,
+    // ))
+
+    Ok(RenderedData {
+        background_bytes: background_pixmap,
+        mask_bytes: output_mask,
+        pixels_to_mask_id: pixels_to_mask_id,
+    })
 
     // Ok(debug_path)
 }

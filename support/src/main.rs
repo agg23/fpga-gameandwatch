@@ -11,7 +11,7 @@ use assets::get_assets;
 use layout::parse_layout;
 use manifest::PlatformSpecification;
 
-use crate::manifest::CPUType;
+use crate::{encode_format::encode, manifest::CPUType, render::RenderedData};
 
 mod assets;
 mod encode_format;
@@ -60,6 +60,10 @@ struct Args {
 
     #[arg(short = 'a', long, default_value = "manifest.json")]
     manifest_path: PathBuf,
+
+    #[arg(short = 'd', long)]
+    /// Enable debug PNG output
+    debug: bool,
 
     // Company filtering
     #[arg(short, long)]
@@ -229,15 +233,29 @@ fn main() {
             }
         };
 
-        let path = match render::render(&name, &layout, &platform.device, &temp_dir) {
-            Ok(path) => path,
+        let RenderedData {
+            background_bytes,
+            mask_bytes,
+            pixels_to_mask_id,
+        } = match render::render(&name, &layout, &platform.device, &temp_dir, args.debug) {
+            Ok(data) => data,
             Err(err) => {
                 fail(name, err);
                 return;
             }
         };
 
-        println!("Successfully created device {} at {path:?}\n", name.green());
+        let data_path = encode(
+            background_bytes.data(),
+            mask_bytes.data(),
+            pixels_to_mask_id.as_slice(),
+            &temp_dir,
+        );
+
+        println!(
+            "Successfully created device {} at {data_path:?}\n",
+            name.green()
+        );
         success_count += 1;
     }
 
