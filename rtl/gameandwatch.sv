@@ -236,18 +236,39 @@ module gameandwatch (
   // Mask
 
   // Segments, over all H's, as last seen
-  reg [15:0] segment_a[1:0];
-  reg [15:0] segment_b[1:0];
+  reg [15:0] segment_a[4];
+  reg [15:0] segment_b[4];
   reg [1:0] segment_bs;
+
+  reg [15:0] cache_segment_a[4];
+  reg [15:0] cache_segment_b[4];
+  reg [1:0] cache_segment_bs;
 
   // Comb
   reg [1:0] current_h_index;
+  reg prev_vblank = 0;
 
   always @(posedge clk_sys_131_072) begin
+    prev_vblank <= vblank_int;
+
     // TODO: This is very similar to the logic already in `ram.sv`
-    segment_a[output_lcd_h_index]  <= current_segment_a;
-    segment_b[output_lcd_h_index]  <= current_segment_b;
+    segment_a[output_lcd_h_index] <= current_segment_a;
+    segment_b[output_lcd_h_index] <= current_segment_b;
     segment_bs[output_lcd_h_index] <= current_segment_bs;
+
+    if (vblank_int && ~prev_vblank) begin
+      cache_segment_a[0] <= segment_a[0];
+      cache_segment_a[1] <= segment_a[1];
+      cache_segment_a[2] <= segment_a[2];
+      cache_segment_a[3] <= segment_a[3];
+
+      cache_segment_b[0] <= segment_b[0];
+      cache_segment_b[1] <= segment_b[1];
+      cache_segment_b[2] <= segment_b[2];
+      cache_segment_b[3] <= segment_b[3];
+
+      cache_segment_bs   <= segment_bs;
+    end
   end
 
   // The line select of the segment, choosing which seg_a/b/bs is used
@@ -268,9 +289,9 @@ module gameandwatch (
 
     if (has_segment) begin
       case (segment_line_select)
-        4'h0: display_segment = segment_a[segment_row][segment_column];
-        4'h1: display_segment = segment_b[segment_row][segment_column];
-        4'h2: display_segment = segment_bs[segment_row];
+        4'h0: display_segment = cache_segment_a[segment_row][segment_column];
+        4'h1: display_segment = cache_segment_b[segment_row][segment_column];
+        4'h2: display_segment = cache_segment_bs[segment_row];
         default: begin
           // TODO: What happens in these cases?
         end
