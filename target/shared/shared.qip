@@ -1,1 +1,2 @@
 set_global_assignment -name QIP_FILE   [file join $::quartus(qip_path) "image_fifo.qip"]
+set_global_assignment -name QIP_FILE   [file join $::quartus(qip_path) "mask_rom.qip"]

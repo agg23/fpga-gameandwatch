@@ -52,11 +52,24 @@ module gameandwatch (
   ////////////////////////////////////////////////////////////////////////////////////////
   // Loading and config
 
+  wire [31:0] input_s0_config;
+  wire [31:0] input_s1_config;
+  wire [31:0] input_s2_config;
+  wire [31:0] input_s3_config;
+  wire [31:0] input_s4_config;
+  wire [31:0] input_s5_config;
+  wire [31:0] input_s6_config;
+  wire [31:0] input_s7_config;
+
   wire [24:0] base_addr;
   wire image_download;
   wire mask_config_download;
   // TODO: Use
   wire rom_download;
+
+  wire wr_8bit;
+  wire [25:0] addr_8bit;
+  wire [7:0] data_8bit;
 
   rom_loader rom_loader (
       .clk(clk_sys_131_072),
@@ -65,16 +78,205 @@ module gameandwatch (
       .ioctl_addr(ioctl_addr),
       .ioctl_dout(ioctl_dout),
 
+      // Input config
+      .input_s0_config(input_s0_config),
+      .input_s1_config(input_s1_config),
+      .input_s2_config(input_s2_config),
+      .input_s3_config(input_s3_config),
+      .input_s4_config(input_s4_config),
+      .input_s5_config(input_s5_config),
+      .input_s6_config(input_s6_config),
+      .input_s7_config(input_s7_config),
+
+      // Data signals
       .base_addr(base_addr),
       .image_download(image_download),
       .mask_config_download(mask_config_download),
-      .rom_download(rom_download)
+      .rom_download(rom_download),
+
+      // 8 bit bus
+      .wr_8bit  (wr_8bit),
+      .addr_8bit(addr_8bit),
+      .data_8bit(data_8bit)
+  );
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // ROM
+
+  wire [11:0] rom_addr;
+  reg [7:0] rom_data = 0;
+
+  reg [7:0] rom[4096];
+
+  always @(posedge clk_sys_131_072) begin
+    if (clk_en) begin
+      rom_data <= rom[rom_addr];
+    end
+  end
+
+  always @(posedge clk_sys_131_072) begin
+    if (wr_8bit && rom_download) begin
+      // ioctl_dout has flipped bytes, flip back by modifying address
+      rom[{addr_8bit[25:1], ~addr_8bit[0]}] <= data_8bit;
+    end
+  end
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Input
+
+  wire [ 7:0] output_shifter_s;
+
+  // Comb
+  reg  [31:0] active_input_config;
+
+  always_comb begin
+    active_input_config = input_s0_config;
+
+    if (output_shifter_s[0]) active_input_config = input_s0_config;
+    else if (output_shifter_s[1]) active_input_config = input_s1_config;
+    else if (output_shifter_s[2]) active_input_config = input_s2_config;
+    else if (output_shifter_s[3]) active_input_config = input_s3_config;
+    else if (output_shifter_s[4]) active_input_config = input_s4_config;
+    else if (output_shifter_s[5]) active_input_config = input_s5_config;
+    else if (output_shifter_s[6]) active_input_config = input_s6_config;
+    else if (output_shifter_s[7]) active_input_config = input_s7_config;
+  end
+
+  reg [3:0] input_k = 0;
+
+  // Map from config value to control
+  function input_mux([7:0] config_value);
+    case (config_value)
+      0: return dpad_up;
+      1: return dpad_down;
+      2: return dpad_left;
+      3: return dpad_right;
+
+      // Buttons
+      4: return button_b;
+      5: return button_a;
+      6: return button_y;
+      7: return button_x;
+
+      // Buttons 5-8 unhandled
+      // Select is Time
+      12: return button_trig_l;
+      13: return button_select;
+      14: return button_start;
+
+      // Service1 unhandled
+      // Service 2 is Alarm
+      16: return button_trig_r;
+
+      // Other values unhandled
+
+      default: return 0;
+    endcase
+  endfunction
+
+  always @(posedge clk_sys_131_072) begin
+    input_k <= {
+      input_mux(active_input_config[31:24]),
+      input_mux(active_input_config[23:16]),
+      input_mux(active_input_config[15:8]),
+      input_mux(active_input_config[7:0])
+    };
+  end
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Device/CPU
+
+  localparam DIVIDER_RESET_VALUE = 12'hFA0 - 12'h1;
+  reg [11:0] clock_divider = DIVIDER_RESET_VALUE;
+
+  wire clk_en = clock_divider == 0;
+
+  always @(posedge clk_sys_131_072) begin
+    clock_divider <= clock_divider - 1;
+
+    if (clock_divider == 0) begin
+      clock_divider <= DIVIDER_RESET_VALUE;
+    end
+  end
+
+  wire [1:0] output_lcd_h_index;
+
+  wire [15:0] current_segment_a;
+  wire [15:0] current_segment_b;
+  wire current_segment_bs;
+
+  sm510 sm510 (
+      .clk(clk_sys_131_072),
+
+      .clk_en(clk_en),
+
+      .reset(reset),
+
+      .rom_data(rom_data),
+      .rom_addr(rom_addr),
+
+      .input_k(input_k),
+
+      .input_ba  (1),
+      .input_beta(1),
+
+      .output_lcd_h_index(output_lcd_h_index),
+
+      .output_shifter_s(output_shifter_s),
+
+      .segment_a (current_segment_a),
+      .segment_b (current_segment_b),
+      .segment_bs(current_segment_bs),
+
+      // TODO: This only uses one of the pins
+      .buzzer_r(sound)
   );
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // Mask
 
-  wire segment_enabled;
+  // Segments, over all H's, as last seen
+  reg [15:0] segment_a[1:0];
+  reg [15:0] segment_b[1:0];
+  reg [1:0] segment_bs;
+
+  // Comb
+  reg [1:0] current_h_index;
+
+  always @(posedge clk_sys_131_072) begin
+    // TODO: This is very similar to the logic already in `ram.sv`
+    segment_a[output_lcd_h_index]  <= current_segment_a;
+    segment_b[output_lcd_h_index]  <= current_segment_b;
+    segment_bs[output_lcd_h_index] <= current_segment_bs;
+  end
+
+  // The line select of the segment, choosing which seg_a/b/bs is used
+  wire [3:0] segment_line_select;
+
+  // The column of the segment, corresponding to bit in the seg_a/b/bs line
+  wire [3:0] segment_column;
+
+  // The row of the segment, corresponding to which H bit is high
+  wire [1:0] segment_row;
+
+  // Comb
+  reg display_segment;
+  wire has_segment;
+
+  always_comb begin
+    display_segment = 0;
+
+    if (has_segment) begin
+      case (segment_line_select)
+        4'h0: display_segment = segment_a[segment_row][segment_column];
+        4'h1: display_segment = segment_b[segment_row][segment_column];
+        4'h2: display_segment = segment_bs[segment_row];
+        default: begin
+          // TODO: What happens in these cases?
+        end
+      endcase
+    end
+  end
 
   mask mask (
       .clk(clk_sys_131_072),
@@ -87,7 +289,8 @@ module gameandwatch (
       .video_x(video_x),
       .video_y(video_y),
 
-      .segment_enabled(segment_enabled)
+      .segment_id ({segment_line_select, segment_column, segment_row}),
+      .has_segment(has_segment)
   );
 
   ////////////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +305,7 @@ module gameandwatch (
   wire [23:0] background_rgb;
   wire [23:0] mask_rgb;
 
-  assign rgb = segment_enabled ? mask_rgb : background_rgb;
+  assign rgb = display_segment ? mask_rgb : background_rgb;
 
   wire fifo_clear = hblank_int && ~prev_hblank;
 

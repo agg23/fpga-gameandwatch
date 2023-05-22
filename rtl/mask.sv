@@ -11,7 +11,8 @@ module mask #(
     input wire [9:0] video_x,
     input wire [9:0] video_y,
 
-    output reg segment_enabled = 0
+    output wire [9:0] segment_id,
+    output reg has_segment = 0
 );
   ////////////////////////////////////////////////////////////////////////////////////////
   // ROM management
@@ -19,27 +20,35 @@ module mask #(
   reg [14:0] read_addr = 0;
   reg [14:0] write_addr = 0;
 
-  reg [39:0] mask_rom[18720];
-  reg [39:0] mask_output = 0;
+  // reg [39:0] mask_rom[18720];
+  // reg [39:0] mask_output = 0;
 
   reg wren = 0;
 
-  always @(posedge clk) begin
-    if (wren) begin
-      mask_rom[write_addr] <= buffer_40;
-    end
-    mask_output <= mask_rom[read_addr];
-  end
+  // always @(posedge clk) begin
+  //   if (wren) begin
+  //     mask_rom[write_addr] <= buffer_40;
+  //   end
+  //   mask_output <= mask_rom[read_addr];
+  // end
 
-  wire [9:0] segment_id  /* synthesis keep */;
-  wire [9:0] segment_start_x  /* synthesis keep */;
-  wire [9:0] segment_y  /* synthesis keep */;
-  wire [9:0] segment_length  /* synthesis keep */;
+  mask_rom mask_rom (
+      .clock(clk),
 
-  assign {segment_length, segment_y, segment_start_x, segment_id} = mask_output;
+      .address(wren ? write_addr : read_addr),
+      .wren(wren),
+      .data(buffer_40),
+      .q({segment_length, segment_y, segment_start_x, segment_id})
+  );
 
-  reg [15:0] buffer_16 = 0;
-  reg [ 1:0] buffer_16_bytes = 0;
+  wire [ 9:0] segment_start_x  /* synthesis keep */;
+  wire [ 9:0] segment_y  /* synthesis keep */;
+  wire [ 9:0] segment_length  /* synthesis keep */;
+
+  // assign {segment_length, segment_y, segment_start_x, segment_id} = mask_output;
+
+  reg  [15:0] buffer_16 = 0;
+  reg  [ 1:0] buffer_16_bytes = 0;
 
   always @(posedge clk) begin
     if (ioctl_wr) begin
@@ -90,7 +99,7 @@ module mask #(
   reg [VID_COUNTER_DEPTH -1 : 0] vid_counter = 0;
 
   always @(posedge clk) begin
-    segment_enabled <= in_segment;
+    has_segment <= in_segment;
 
     if (vid_counter > 0) begin
       vid_counter <= vid_counter - 'h1;
@@ -117,7 +126,7 @@ module mask #(
         // Beginning of segment
         in_segment <= 1;
         // TODO: Change to actual segment status by using ID
-        segment_enabled <= 1;
+        has_segment <= 1;
 
         length <= segment_length - 10'h1;
 
@@ -125,7 +134,7 @@ module mask #(
           read_addr <= read_addr + 15'h1;
         end
       end else begin
-        segment_enabled <= 0;
+        has_segment <= 0;
       end
     end
   end

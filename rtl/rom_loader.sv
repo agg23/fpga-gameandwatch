@@ -30,7 +30,12 @@ module rom_loader (
     output reg [25:0] base_addr,
     output wire image_download,
     output wire mask_config_download,
-    output wire rom_download
+    output wire rom_download,
+
+    // 8 bit bus
+    output reg wr_8bit,
+    output wire [25:0] addr_8bit,
+    output wire [7:0] data_8bit
 );
   // Word addresses
   localparam IMAGE_START_ADDR = 25'h80;
@@ -57,24 +62,27 @@ module rom_loader (
   reg [23:0] screen_size = 0;
   assign {screen_height, screen_width} = screen_size;
 
-  reg wren = 0;
   reg [15:0] buffer = 0;
-  reg [1:0] read_count = 0;
+  reg [ 1:0] read_count = 0;
+
+  assign data_8bit = buffer[7:0];
+  // Byte address
+  assign addr_8bit = {base_addr[24:0], read_count == 2'h1};
 
   always @(posedge clk) begin
-    wren <= 0;
+    wr_8bit <= 0;
 
-    if (config_data && ioctl_wr) begin
+    if (ioctl_wr) begin
       buffer <= ioctl_dout;
       read_count <= 2'h2;
     end
 
-    if (wren) begin
+    if (wr_8bit) begin
       buffer <= {8'h0, buffer[15:8]};
     end
 
     if (read_count > 0) begin
-      wren <= 1;
+      wr_8bit <= 1;
       read_count <= read_count - 2'h1;
     end
   end
@@ -93,10 +101,8 @@ module rom_loader (
   reg [7:0] state = VERSION;
   reg [5:0] byte_count = 0;
 
-  wire [7:0] write_data = buffer[7:0];
-
   always @(posedge clk) begin
-    if (wren) begin
+    if (wr_8bit) begin
       case (state)
         VERSION: begin
           // Check for version number 1, though we can't do anything about it now
@@ -104,15 +110,15 @@ module rom_loader (
         end
         MPU: begin
           state <= SCREEN_CONFIG;
-          mpu   <= write_data;
+          mpu   <= data_8bit;
         end
         SCREEN_CONFIG: begin
           state <= SCREEN_SIZE;
-          screen_config <= write_data;
+          screen_config <= data_8bit;
         end
         SCREEN_SIZE: begin
           byte_count  <= byte_count + 6'h1;
-          screen_size <= {write_data, screen_size[23:8]};
+          screen_size <= {data_8bit, screen_size[23:8]};
 
           if (byte_count == 4'h2) begin
             state <= SCREEN_RESERVED;
@@ -133,37 +139,37 @@ module rom_loader (
 
           if (byte_count >= 0 && byte_count < 4) begin
             // S0
-            input_s0_config <= {write_data, input_s0_config[31:8]};
+            input_s0_config <= {data_8bit, input_s0_config[31:8]};
           end else if (byte_count >= 4 && byte_count < 8) begin
             // S1
-            input_s1_config <= {write_data, input_s1_config[31:8]};
+            input_s1_config <= {data_8bit, input_s1_config[31:8]};
           end else if (byte_count >= 8 && byte_count < 12) begin
             // S2
-            input_s2_config <= {write_data, input_s2_config[31:8]};
+            input_s2_config <= {data_8bit, input_s2_config[31:8]};
           end else if (byte_count >= 12 && byte_count < 16) begin
             // S3
-            input_s3_config <= {write_data, input_s3_config[31:8]};
+            input_s3_config <= {data_8bit, input_s3_config[31:8]};
           end else if (byte_count >= 16 && byte_count < 20) begin
             // S4
-            input_s4_config <= {write_data, input_s4_config[31:8]};
+            input_s4_config <= {data_8bit, input_s4_config[31:8]};
           end else if (byte_count >= 20 && byte_count < 24) begin
             // S5
-            input_s5_config <= {write_data, input_s5_config[31:8]};
+            input_s5_config <= {data_8bit, input_s5_config[31:8]};
           end else if (byte_count >= 24 && byte_count < 28) begin
             // S6
-            input_s6_config <= {write_data, input_s6_config[31:8]};
+            input_s6_config <= {data_8bit, input_s6_config[31:8]};
           end else if (byte_count >= 28 && byte_count < 32) begin
             // S7
-            input_s7_config <= {write_data, input_s7_config[31:8]};
+            input_s7_config <= {data_8bit, input_s7_config[31:8]};
           end else if (byte_count == 32) begin
             // B
-            input_b_config <= write_data;
+            input_b_config <= data_8bit;
           end else if (byte_count == 33) begin
             // BA
-            input_ba_config <= write_data;
+            input_ba_config <= data_8bit;
           end else if (byte_count == 34) begin
             // ACL
-            input_acl_config <= write_data;
+            input_acl_config <= data_8bit;
           end
 
           // Extra gap for reserved bytes

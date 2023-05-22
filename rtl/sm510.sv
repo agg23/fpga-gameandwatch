@@ -19,8 +19,8 @@ module sm510 (
     input wire input_ba,
     input wire input_beta,
 
-    // The H1-4 output pins
-    output wire [3:0] output_lcd_h,
+    // The H1-4 output pins, as an index
+    output wire [1:0] output_lcd_h_index,
 
     // The S1-8 strobe output pins
     output wire [7:0] output_shifter_s,
@@ -149,7 +149,7 @@ module sm510 (
   reg  [ 3:0] lcd_h;
   reg  [ 1:0] lcd_h_index = 0;
 
-  assign output_lcd_h = lcd_h;
+  assign output_lcd_h_index = lcd_h_index;
 
   reg prev_divider_64hz = 0;
 
