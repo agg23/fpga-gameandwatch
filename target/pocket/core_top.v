@@ -317,6 +317,22 @@ module core_top (
     endcase
   end
 
+  always @(posedge clk_74a) begin
+    if (reset_delay > 0) begin
+      reset_delay <= reset_delay - 1;
+    end
+
+    if (bridge_wr) begin
+      casex (bridge_addr)
+        32'h0: begin
+          reset_delay <= 32'h100000;
+        end
+        32'h200: begin
+          accurate_lcd_timing <= bridge_wr_data[0];
+        end
+      endcase
+    end
+  end
 
   //
   // host/target command handler
@@ -517,15 +533,24 @@ module core_top (
   ////////////////////////////////////////////////////////////////////////////////////////
   // Settings
 
+  reg [31:0] reset_delay = 0;
+  wire external_reset = reset_delay > 0;
+
+  reg accurate_lcd_timing = 0;
+
+  // Synced settings
   wire ioctl_download_s;
   wire reset_n_s;
   wire pll_core_locked_s;
 
+  wire external_reset_s;
+  wire accurate_lcd_timing_s;
+
   synch_3 #(
-      .WIDTH(3)
+      .WIDTH(5)
   ) internal_s (
-      {ioctl_download, reset_n, pll_core_locked},
-      {ioctl_download_s, reset_n_s, pll_core_locked_s},
+      {ioctl_download, reset_n, pll_core_locked, external_reset, accurate_lcd_timing},
+      {ioctl_download_s, reset_n_s, pll_core_locked_s, external_reset_s, accurate_lcd_timing_s},
       clk_sys_131_072
   );
 
@@ -539,7 +564,6 @@ module core_top (
       clk_sys_131_072
   );
 
-
   ////////////////////////////////////////////////////////////////////////////////////////
   // Core
 
@@ -549,7 +573,7 @@ module core_top (
       .clk_sys_131_072(clk_sys_131_072),
       .clk_vid_32_768 (clk_vid_32_768),
 
-      .reset(~reset_n_s),
+      .reset(~reset_n_s || external_reset_s),
       .pll_core_locked(pll_core_locked_s),
 
       // Input
@@ -584,6 +608,9 @@ module core_top (
       .rgb(rgb),
 
       .sound(sound),
+
+      // Settings
+      .accurate_lcd_timing(accurate_lcd_timing_s),
 
       // SDRAM
       .SDRAM_A(dram_a),

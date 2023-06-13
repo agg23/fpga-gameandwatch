@@ -37,6 +37,9 @@ module gameandwatch (
     // Sound
     output wire sound,
 
+    // Settings
+    input wire accurate_lcd_timing, // Use precise timing to update the cached LCD segments based on H timing. This doesn't look good, hence the setting
+
     // SDRAM
     inout  wire [15:0] SDRAM_DQ,
     output wire [12:0] SDRAM_A,
@@ -229,7 +232,10 @@ module gameandwatch (
       .segment_bs(current_segment_bs),
 
       // TODO: This only uses one of the pins
-      .buzzer_r(sound)
+      .buzzer_r(sound),
+
+      // Settings
+      .accurate_lcd_timing(accurate_lcd_timing)
   );
 
   ////////////////////////////////////////////////////////////////////////////////////////

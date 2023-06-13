@@ -32,7 +32,10 @@ module sm510 (
     output reg segment_bs,
 
     // Audio
-    output reg [1:0] buzzer_r
+    output reg [1:0] buzzer_r,
+
+    // Settings
+    input wire accurate_lcd_timing
 );
   // TODO: Remove
   reg [1:0] cached_buzzer_r = 0;
@@ -107,6 +110,7 @@ module sm510 (
   // Temp value to wake from halt
   reg divider_1s_tick = 0;
   wire divider_64hz = divider[10];
+  wire divider_1khz = divider[4];
 
   always @(posedge clk) begin
     if (reset) begin
@@ -151,15 +155,18 @@ module sm510 (
 
   assign output_lcd_h_index = lcd_h_index;
 
-  reg prev_divider_64hz = 0;
+  reg prev_strobe_divider = 0;
 
   always @(posedge clk) begin
     if (reset) begin
       lcd_h_index <= 0;
     end else if (clk_en) begin
-      prev_divider_64hz <= divider_64hz;
+      reg temp;
+      temp = accurate_lcd_timing ? divider_64hz : divider_1khz;
 
-      if (divider_64hz && ~prev_divider_64hz) begin
+      prev_strobe_divider <= temp;
+
+      if (temp && ~prev_strobe_divider) begin
         // Strobe LCD
         lcd_h_index <= lcd_h_index + 2'b1;
 
