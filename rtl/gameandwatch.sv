@@ -272,13 +272,13 @@ module gameandwatch (
   end
 
   // The line select of the segment, choosing which seg_a/b/bs is used
-  wire [3:0] segment_line_select;
+  wire [3:0] segment_line_select  /* synthesis keep */;
 
   // The column of the segment, corresponding to bit in the seg_a/b/bs line
-  wire [3:0] segment_column;
+  wire [3:0] segment_column  /* synthesis keep */;
 
   // The row of the segment, corresponding to which H bit is high
-  wire [1:0] segment_row;
+  wire [1:0] segment_row  /* synthesis keep */;
 
   // Comb
   reg display_segment;

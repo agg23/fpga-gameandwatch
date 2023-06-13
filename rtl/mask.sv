@@ -11,8 +11,8 @@ module mask #(
     input wire [9:0] video_x,
     input wire [9:0] video_y,
 
-    output wire [9:0] segment_id,
-    output reg has_segment = 0
+    output reg [9:0] segment_id = 0,  // Cycle delayed to only update on video_clock cycles
+    output reg has_segment = 0 // Cycle delayed in_segment to properly track the cycles we should render segments
 );
   ////////////////////////////////////////////////////////////////////////////////////////
   // ROM management
@@ -32,20 +32,20 @@ module mask #(
   //   mask_output <= mask_rom[read_addr];
   // end
 
+  wire [9:0] next_segment_id;
+
   mask_rom mask_rom (
       .clock(clk),
 
       .address(wren ? write_addr : read_addr),
       .wren(wren),
       .data(buffer_40),
-      .q({segment_length, segment_y, segment_start_x, segment_id})
+      .q({segment_length, segment_y, segment_start_x, next_segment_id})
   );
 
   wire [ 9:0] segment_start_x  /* synthesis keep */;
   wire [ 9:0] segment_y  /* synthesis keep */;
   wire [ 9:0] segment_length  /* synthesis keep */;
-
-  // assign {segment_length, segment_y, segment_start_x, segment_id} = mask_output;
 
   reg  [15:0] buffer_16 = 0;
   reg  [ 1:0] buffer_16_bytes = 0;
@@ -94,6 +94,7 @@ module mask #(
   localparam CLOCK_RATIO_START_VALUE = CLOCK_RATIO - 1;
   localparam VID_COUNTER_DEPTH = $clog2(CLOCK_RATIO_START_VALUE);
 
+  // Currently in segment
   reg in_segment = 0;
   reg [9:0] length = 0;
   reg [VID_COUNTER_DEPTH -1 : 0] vid_counter = 0;
@@ -113,6 +114,8 @@ module mask #(
     end else if (hblank) begin
       in_segment <= 0;
     end else if (vid_counter == 0) begin
+      segment_id <= next_segment_id;
+
       if (in_segment) begin
         // Existing segment
         length <= length - 10'h1;
