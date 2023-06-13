@@ -48,14 +48,18 @@ pub fn encode(
     config.append(&mut image_block);
 
     // Build mask config
-    let mut mask_block = build_mask_map(pixels_to_mask_id);
+    let mut mask_block = build_mask_map(pixels_to_mask_id)?;
 
     config.append(&mut mask_block);
 
     // Add ROM
     // TODO: Add melody ROM
-    let mut rom_data =
-        fs::read(asset_dir.join(platform.rom.rom.clone())).expect("Could not open ROM");
+    let rom_path = asset_dir.join(platform.rom.rom.clone());
+
+    let mut rom_data = match fs::read(&rom_path) {
+        Ok(data) => Ok(data),
+        Err(_) => Err(format!("Could not open ROM {rom_path:?}")),
+    }?;
 
     config.append(&mut rom_data);
 
@@ -236,7 +240,30 @@ const BYTES_PER_ENTRY: usize = 5;
 const AVERAGE_ENTRIES_PER_ROW: usize = 26;
 const TOTAL_BYTE_LENGTH: usize = BYTES_PER_ENTRY * AVERAGE_ENTRIES_PER_ROW * HEIGHT;
 
-fn build_mask_map(pixels_to_mask_id: &[Option<u16>]) -> Vec<u8> {
+fn insert_mask_entry_bytes(
+    output: &mut Vec<u8>,
+    byte_index: &mut usize,
+    id: u16,
+    length: usize,
+    start_x: usize,
+    y: usize,
+) -> Result<(), String> {
+    if *byte_index > TOTAL_BYTE_LENGTH {
+        return Err(format!(
+            "More entries ({}) than allowed ({TOTAL_BYTE_LENGTH})",
+            byte_index
+        ));
+    }
+
+    output[*byte_index..*byte_index + BYTES_PER_ENTRY]
+        .clone_from_slice(&entry_to_bytes(id, length, start_x, y));
+
+    *byte_index += BYTES_PER_ENTRY;
+
+    Ok(())
+}
+
+fn build_mask_map(pixels_to_mask_id: &[Option<u16>]) -> Result<Vec<u8>, String> {
     // 5 bytes per entry
     let mut output: Vec<u8> = vec![0; TOTAL_BYTE_LENGTH];
     let mut byte_index = 0;
@@ -264,35 +291,18 @@ fn build_mask_map(pixels_to_mask_id: &[Option<u16>]) -> Vec<u8> {
                     // End entry
                     current_id = None;
 
-                    // println!(
-                    //     "Encoding run {}, id: {id}, length: {length}, x: {start_x}, y: {y}",
-                    //     byte_index / BYTES_PER_ENTRY
-                    // );
-
-                    output[byte_index..byte_index + BYTES_PER_ENTRY]
-                        .clone_from_slice(&entry_to_bytes(id, length, start_x, y));
-
-                    byte_index += BYTES_PER_ENTRY;
+                    insert_mask_entry_bytes(&mut output, &mut byte_index, id, length, start_x, y)?;
                 }
             }
         }
 
         if let Some(id) = current_id {
-            output[byte_index..byte_index + BYTES_PER_ENTRY]
-                .clone_from_slice(&entry_to_bytes(id, length, start_x, y));
-
-            byte_index += BYTES_PER_ENTRY;
-        }
-
-        if byte_index > TOTAL_BYTE_LENGTH {
-            println!(
-                "More entries ({}) than allowed ({TOTAL_BYTE_LENGTH})",
-                byte_index
-            );
+            // Clean up straggler at the end of a row
+            insert_mask_entry_bytes(&mut output, &mut byte_index, id, length, start_x, y)?;
         }
     }
 
-    output
+    Ok(output)
 }
 
 fn entry_to_bytes(id: u16, length: usize, start_x: usize, y: usize) -> Vec<u8> {
