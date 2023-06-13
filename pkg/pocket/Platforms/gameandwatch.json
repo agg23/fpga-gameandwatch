@@ -1,8 +1,8 @@
 {
-    "platform": {
-        "category": "Undefined",
-        "name": "SM510",
-        "manufacturer": "Sharp",
-        "year": 1980
-    }
+  "platform": {
+    "category": "Handheld",
+    "name": "Game and Watch",
+    "manufacturer": "Nintendo",
+    "year": 1980
+  }
 }
