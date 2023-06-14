@@ -117,3 +117,40 @@ Note:
 | `SKIP`   | `0x00` | Do nothing                      |
 | `CEND`   | `0x5D` | Stop clock                      |
 | `IDIV`   | `0x65` | `DIV <- 0`. Reset clock divider |
+
+# Variant: SM5a
+
+## Hardware
+
+* Adds `W'` shift registers, which drive output
+* Adds `m'` flag register to accompany `W'`
+* Adds page setting functionality with the `Cs`, `Su`, `Sl` stack registers
+* Adds `CB` bank select for certain branches (`TR` and `TRS`)
+* Removes stack `S` and `R`
+* Removes LCD `H` and segments `A` and `B`. Uses `O` output pins based on `W` and `W'`
+
+## Instructions
+
+| Mnemonic | Opcode      | Operation                                                                                                               | Replaces                                |
+| -------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `SSR`    | `0x7X`      | Set stack `S` `Pm` (page) to immed. Sets `E` flag for next opcode                                                       | `TL` and `TML`, long jump and long call |
+| `TR`     | `0x80-0xBF` | Long or short jump. Uses set page value to determine whether long/short \[1]                                            | `T` short jump                          |
+| `TRS`    | `0xC0-0xFF` | Call subroutine. Sets `Pl` to immed, pushes stack. Uses stored page/bank if `E` flag is set from `SSR` prev instruction | `TM` jump to IDX table                  |
+| `ATR`    | `0x01`      | Same as normal: Set `R` buzzer control value to the bottom two bits of Acc                                              | `ATBP` set BP                           |
+| `ATBP`   | `0x03`      | Same as normal: Set LCD BP reg to Acc                                                                                   | `ATPL` set PC low bits                  |
+| `TAL`    | `0x50`      | Skip next instr if `BA` is set                                                                                          | None                                    |
+| `PTW`    | `0x59`      | Copy last two values from `W'` to `W`                                                                                   | `ATL` set `L` segment output            |
+| `TW`     | `0x5C`      | Copy `W'` to `W`                                                                                                        | None                                    |
+| `DTW`    | `0x5D`      | Shift PLA value into `W'`. See \[2]                                                                                     | `CEND` stop clock                       |
+| `COMCN`  | `0x60`      | XOR (complement) high bit of `BP`                                                                                       | `ATFC` set `Y` segment output           |
+| `PDTW`   | `0x61`      | Shift one PLA value into `W'` \[2]                                                                                      | `ATR` set buzzer                        |
+| `RMF`    | `0x68`      | Clear `m'` and Acc                                                                                                      | `TF1` skip if divider                   |
+| `SMF`    | `0x69`      | Set `m'`                                                                                                                | `TF4` skip if divider                   |
+| `RBM`    | `0x6B`      | Clear `Bm` high bit                                                                                                     | `ROT` rotate right                      |
+| `COMCB`  | `0x6D`      | XOR (complement) `CB`                                                                                                   | `BCD` set LCD power                     |
+| `CEND`   | `0x5E 0x00` | Stop clock                                                                                                              | `TAL`                                   |
+| `DTA`    | `0x5E 0x04` | Copy high 4 bits of clock divider to Acc                                                                                | `TAL`                                   |
+
+Note:
+1. MAME has some strange logic for the `m_rsub` flag which indicates whether a call has occurred (`TRS`), and changes all of the branching behavior of `TR` and `TRS` until `RTN0` is executed
+2. PLA values from MAME: `0xe, 0x0, 0xc, 0x8, 0x2, 0xa, 0xe, 0x2, 0xe, 0xa, 0x0, 0x0, 0x2, 0xa, 0x2, 0x2, 0xb, 0x9, 0x7, 0xf, 0xd, 0xe, 0xe, 0xb, 0xf, 0xf, 0x4, 0x0, 0xd, 0xe, 0x4, 0x0`
