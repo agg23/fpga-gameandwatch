@@ -32,7 +32,9 @@ module rom_tb;
       .input_ba  (1'b1),
       .input_beta(1'b1),
 
-      .output_shifter_s(shifter_s)
+      .output_shifter_s(shifter_s),
+
+      .accurate_lcd_timing(1'b1)
   );
 
   always begin
@@ -67,13 +69,19 @@ module rom_tb;
     //   input_k |= press_game_b ? 4'h2 : 0;
     // end
     // Cement
-    if (shifter_s[1]) begin
+    // if (shifter_s[1]) begin
+    //   input_k |= press_game_a ? 4'h4 : 0;
+    // end
+
+    // DKJr
+    if (shifter_s[2]) begin
       input_k |= press_game_a ? 4'h4 : 0;
     end
   end
 
   // initial $readmemh("dkii.hex", rom);
-  initial $readmemh("cement.hex", rom);
+  // initial $readmemh("cement.hex", rom);
+  initial $readmemh("dkjr.hex", rom);
 
   initial begin
     // Initialize RAM
@@ -88,9 +96,12 @@ module rom_tb;
   integer step_count;
 
   task log();
-    $fwrite(fd, "pc=%h, acc=%h, carry=%d, bm=%h, bl=%h, shifter_w=%h, gamma=%0d, div=%h\n",
-            last_pc, cpu_uut.Acc, cpu_uut.carry, cpu_uut.Bm, cpu_uut.Bl, cpu_uut.shifter_w,
-            cpu_uut.gamma, cpu_uut.divider);
+    $fwrite(
+        fd,
+        "pc=%h, acc=%h, carry=%d, bm=%h, bl=%h, shifter_w=%h, gamma=%0d, div=%h,      seg_a=%h, h=%d\n",
+        last_pc, cpu_uut.inst.Acc, cpu_uut.inst.carry, cpu_uut.inst.Bm, cpu_uut.inst.Bl,
+        cpu_uut.inst.shifter_w, cpu_uut.inst.gamma, cpu_uut.divider.divider, cpu_uut.segment_a,
+        cpu_uut.lcd_h_index);
   endtask
 
   initial begin
@@ -127,7 +138,7 @@ module rom_tb;
         did_write = 0;
 
         // Store prev PC for use in tracing
-        last_pc   = cpu_uut.pc;
+        last_pc   = cpu_uut.inst.pc;
       end
 
       // Donkey Kong II
@@ -169,10 +180,12 @@ module rom_tb;
       if (step_count == 32'h8000) begin
         // Enable Game A
         press_game_a = 1;
-      end else if (step_count == 32'h8000 + 32'h400) begin
+        $fwrite(fd, "Pressing A\n");
+      end else if (step_count == 32'h8000 + 32'h800) begin
         // Disable Game A
         press_game_a = 0;
-      end else if (step_count == 32'h8000 + 32'h400 + 32'h4E20) begin
+        $fwrite(fd, "Releasing A\n");
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h4E20) begin
         $finish();
       end
     end

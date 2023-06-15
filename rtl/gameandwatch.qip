@@ -1,6 +1,8 @@
 # ==============================================================================
 # RTL
 # ==============================================================================
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "cpu/divider.sv"]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "cpu/instructions.sv"]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "gameandwatch.sv"]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "mask.sv"]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "ram.sv"]
