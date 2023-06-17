@@ -15,6 +15,7 @@ module rom_tb;
   // Comb
   reg [3:0] input_k;
   wire [7:0] shifter_s;
+  wire [3:0] output_r;
 
   sm510 cpu_uut (
       .clk(clk),
@@ -37,6 +38,8 @@ module rom_tb;
       .input_beta(1'b0),
 
       .output_shifter_s(shifter_s),
+
+      .output_r(output_r),
 
       .accurate_lcd_timing(1'b1)
   );
@@ -78,7 +81,11 @@ module rom_tb;
     // end
 
     // DKJr
-    if (shifter_s[2]) begin
+    // if (shifter_s[2]) begin
+    //   input_k |= press_game_a ? 4'h4 : 0;
+    // end
+
+    if (output_r[3]) begin
       input_k |= press_game_a ? 4'h4 : 0;
     end
   end
@@ -103,7 +110,7 @@ module rom_tb;
   task log();
     $fwrite(fd, "pc=%h, acc=%h, carry=%d, bm=%h, bl=%h, shifter_w=%h, gamma=%0d, div=%h\n",
             last_pc, cpu_uut.inst.Acc, cpu_uut.inst.carry, cpu_uut.inst.Bm, cpu_uut.inst.Bl,
-            cpu_uut.inst.shifter_w, cpu_uut.inst.gamma, cpu_uut.divider.divider);
+            cpu_uut.inst.shifter_w, cpu_uut.inst.gamma, cpu_uut.div.divider);
   endtask
 
   initial begin

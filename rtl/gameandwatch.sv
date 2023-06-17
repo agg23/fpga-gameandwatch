@@ -232,7 +232,7 @@ module gameandwatch (
       .segment_bs(current_segment_bs),
 
       // TODO: This only uses one of the pins
-      .buzzer_r(sound),
+      // .buzzer_r(sound),
 
       // Settings
       .accurate_lcd_timing(accurate_lcd_timing)

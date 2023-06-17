@@ -1,4 +1,6 @@
 interface instructions (
+    input wire [3:0] cpu_id,
+
     // Data
     input wire [7:0] opcode,
     input wire [7:0] last_opcode,
@@ -6,6 +8,7 @@ interface instructions (
 
     // Internal
     input wire gamma,
+    input wire [14:0] divider,
     input wire divider_4hz,
     input wire divider_32hz,
     input wire [5:0] last_Pl,
@@ -48,7 +51,7 @@ interface instructions (
   reg [7:0] shifter_w = 0;
 
   // TODO: Remove and replace with just buzzer_r
-  reg [1:0] cached_buzzer_r = 0;
+  // reg [1:0] cached_buzzer_r = 0;
 
   // Control
   reg skip_next_instr = 0;
@@ -64,6 +67,11 @@ interface instructions (
   reg reset_gamma = 0;
 
   reg halt = 0;
+
+  reg [3:0] stored_output_r = 0;
+  reg [3:0] output_r = 0;
+  // Direct passthrough of R0 on 0x7, otherwise use the divider bit indicated by this value
+  reg [2:0] output_r_mask = 4'h7;
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // RAM
@@ -147,6 +155,25 @@ interface instructions (
   task push_stack(reg [11:0] next_pc);
     stack_r <= stack_s;
     stack_s <= next_pc;
+  endtask
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Melody/Output
+
+  task clock_melody();
+    case (cpu_id)
+      4: begin
+        // SM5a
+        reg r0_mask;
+        r0_mask = output_r_mask == 4'h7 ? 1 : divider[output_r_mask];
+
+        output_r <= {~stored_output_r[3:1], r0_mask && ~stored_output_r[0]};
+      end
+      default: begin
+        // SM510
+        // TODO: Populate
+      end
+    endcase
   endtask
 
   ////////////////////////////////////////////////////////////////////////////////////////
@@ -343,7 +370,7 @@ interface instructions (
 
   task atr();
     // ATR. Set R buzzer control value to the bottom two bits of Acc
-    cached_buzzer_r <= Acc[1:0];
+    stored_output_r <= Acc;
   endtask
 
   task wr();

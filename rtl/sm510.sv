@@ -35,7 +35,8 @@ module sm510 (
     output reg segment_bs,
 
     // Audio
-    output reg [1:0] buzzer_r,
+    // output reg [1:0] buzzer_r,
+    output wire [3:0] output_r,
 
     // Settings
     input wire accurate_lcd_timing
@@ -57,7 +58,11 @@ module sm510 (
   wire divider_64hz;
   wire divider_1khz;
 
+  wire [14:0] divider;
+
   instructions inst (
+      .cpu_id(cpu_id),
+
       // Data
       .opcode(opcode),
       .last_opcode(last_opcode),
@@ -65,6 +70,7 @@ module sm510 (
 
       // Internal
       .gamma(gamma),
+      .divider(divider),
       .divider_4hz(divider_4hz),
       .divider_32hz(divider_32hz),
       .last_Pl(last_Pl),
@@ -77,22 +83,23 @@ module sm510 (
 
   assign rom_addr = inst.rom_addr;
   assign output_shifter_s = inst.shifter_w;
+  assign output_r = inst.output_r;
 
   reg buzzer = 0;
 
   reg [1:0] delay_counter = 0;
-  always @(posedge clk) begin
-    if (clk_en) begin
-      delay_counter <= delay_counter + 2'h1;
+  // always @(posedge clk) begin
+  //   if (clk_en) begin
+  //     delay_counter <= delay_counter + 2'h1;
 
-      if (delay_counter == 0) begin
-        buzzer <= ~buzzer;
+  //     if (delay_counter == 0) begin
+  //       buzzer <= ~buzzer;
 
-        buzzer_r[0] <= inst.cached_buzzer_r[0] ? buzzer : 1'b0;
-        buzzer_r[1] <= inst.cached_buzzer_r[1] ? ~buzzer : 1'b0;
-      end
-    end
-  end
+  //       buzzer_r[0] <= inst.cached_buzzer_r[0] ? buzzer : 1'b0;
+  //       buzzer_r[1] <= inst.cached_buzzer_r[1] ? ~buzzer : 1'b0;
+  //     end
+  //   end
+  // end
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // Divider
@@ -101,7 +108,7 @@ module sm510 (
   // reg reset_gamma = 0;
   // reg reset_divider = 0;
 
-  divider divider (
+  divider div (
       .clk(clk),
       .clk_en(clk_en),
 
@@ -115,10 +122,11 @@ module sm510 (
       .gamma(gamma),
       .divider_1s_tick(divider_1s_tick),
 
-      .divider_4hz (divider_4hz),
+      .divider_4hz(divider_4hz),
       .divider_32hz(divider_32hz),
       .divider_64hz(divider_64hz),
-      .divider_1khz(divider_1khz)
+      .divider_1khz(divider_1khz),
+      .divider(divider)
   );
 
   ////////////////////////////////////////////////////////////////////////////////////////
@@ -560,6 +568,22 @@ module sm510 (
       last_opcode <= 0;
       last_temp_sbm <= 0;
 
+      case (cpu_id)
+        4: begin
+          // SM5a
+          inst.stored_output_r <= 4'hF;
+        end
+        default: begin
+          // SM510
+          inst.stored_output_r <= 0;
+
+          // Use divider bit 3 for mask
+          inst.output_r_mask   <= 2;
+        end
+      endcase
+
+      inst.output_r <= 0;
+
       // SM5a
       inst.cb_bank <= 0;
 
@@ -572,6 +596,8 @@ module sm510 (
       inst.reset_gamma <= 0;
 
       inst.ram_wr <= 0;
+
+      inst.clock_melody();
 
       if (stage == STAGE_LOAD_PC || stage == STAGE_PERF_3) begin
         // Increment PC

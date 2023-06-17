@@ -15,10 +15,9 @@ module divider (
     output wire divider_4hz,
     output wire divider_32hz,
     output wire divider_64hz,
-    output wire divider_1khz
+    output wire divider_1khz,
+    output reg [14:0] divider = 0
 );
-  reg [14:0] divider = 0;
-
   assign divider_4hz  = divider[14];
   assign divider_32hz = divider[11];
   assign divider_64hz = divider[10];
