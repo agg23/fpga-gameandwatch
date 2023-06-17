@@ -64,6 +64,7 @@ interface instructions (
   reg wr_next_ram_addr = 0;
 
   reg reset_divider = 0;
+  reg reset_divider_keep_6 = 0;
   reg reset_gamma = 0;
 
   reg halt = 0;
@@ -396,6 +397,11 @@ interface instructions (
   task idiv();
     // IDIV. Reset clock divider
     reset_divider <= 1;
+  endtask
+
+  task idiv_sm500();
+    // IDIV. Reset clock divider, keeping lower 6 bits
+    reset_divider_keep_6 <= 1;
   endtask
 
   task rc();

@@ -151,6 +151,7 @@ Note:
 | `WR`     | `0x62`      | Shift Acc (with 0 high bit) into `W'`                                                                                   | `WR`, just different definition         |
 | `WS`     | `0x63`      | Shift Acc (with 1 high bit) into `W'`                                                                                   | `WS`, just different definition         |
 | `INCB`   | `0x64`      | Increment `Bl`. If `Bl` was 8, skip next inst                                                                           | `INCB`, just different definition       |
+| `IDIV`   | `0x65`      | Reset clock divider, keeping the low 6 bits bits                                                                        | `IDIV`, just different definition       |
 | `RMF`    | `0x68`      | Clear `m'` and Acc                                                                                                      | `TF1` skip if divider                   |
 | `SMF`    | `0x69`      | Set `m'`                                                                                                                | `TF4` skip if divider                   |
 | `RBM`    | `0x6B`      | Clear `Bm` high bit                                                                                                     | `ROT` rotate right                      |

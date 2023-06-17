@@ -116,8 +116,9 @@ module sm510 (
 
       .cpu_id(cpu_id),
 
-      .reset_gamma  (inst.reset_gamma),
+      .reset_gamma(inst.reset_gamma),
       .reset_divider(inst.reset_divider),
+      .reset_divider_keep_6(inst.reset_divider_keep_6),
 
       .gamma(gamma),
       .divider_1s_tick(divider_1s_tick),
@@ -407,7 +408,7 @@ module sm510 (
       8'b0001_01XX: begin
         // 0x14-17: EXCI x. Swap Acc/RAM. XOR Bm with immed. Inc Bl
         inst.exc_x(1);
-        inst.incb();
+        inst.incb_sm500();
       end
       8'b0001_10XX: begin
         // 0x18-1B: LDA x. Load Acc with RAM value. XOR Bm with immed
@@ -465,7 +466,7 @@ module sm510 (
         inst.shift_w_prime(w_length, inst.Acc | 4'h8);
       end
       8'h64: inst.incb_sm500();  // INCB. Increment Bl. If Bl was 0x7, skip next
-      8'h65: inst.idiv();  // IDIV. Reset clock divider
+      8'h65: inst.idiv_sm500();  // IDIV. Reset clock divider, keeping lower 6 bits
       8'h66: inst.rc();  // RC. Clear carry
       8'h67: inst.sc();  // SC. Set carry
       8'h68: inst.rmf();  // RMF. Clear m' and Acc
@@ -552,6 +553,7 @@ module sm510 (
       inst.temp_sbm <= 0;
 
       inst.reset_divider <= 0;
+      inst.reset_divider_keep_6 <= 0;
       inst.reset_gamma <= 0;
 
       inst.halt <= 0;
@@ -593,6 +595,7 @@ module sm510 (
       inst.m_prime <= 0;
     end else if (clk_en) begin
       inst.reset_divider <= 0;
+      inst.reset_divider_keep_6 <= 0;
       inst.reset_gamma <= 0;
 
       inst.ram_wr <= 0;

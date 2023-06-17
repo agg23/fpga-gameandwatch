@@ -195,7 +195,7 @@ module rom_tb;
         press_game_a = 0;
         $fwrite(fd, "Releasing A\n");
       end else if (step_count == 32'h8000 + 32'h800 + 32'h4E20) begin
-        $finish();
+        $stop();
       end
     end
   end

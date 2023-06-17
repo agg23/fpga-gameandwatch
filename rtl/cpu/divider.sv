@@ -8,6 +8,7 @@ module divider (
 
     input wire reset_gamma,
     input wire reset_divider,
+    input wire reset_divider_keep_6,
 
     output reg gamma = 0,
     output reg divider_1s_tick = 0, // Temp value to wake from halt
@@ -43,6 +44,14 @@ module divider (
         // TODO: Remove. This is to match MAME testing
         divider <= 2;
         // divider <= 0;
+      end else if (reset_divider_keep_6) begin
+        reg [14:0] inc_divider;
+        // Increment divider as if we were incrementing normally
+        inc_divider = divider + 15'h1;
+
+        divider[14:6] <= 0;
+        // Grab only the lower 6 bits
+        divider[5:0]  <= inc_divider[5:0];
       end else begin
         // Increment
         divider <= divider + 15'h1;
