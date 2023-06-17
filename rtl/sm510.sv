@@ -34,6 +34,10 @@ module sm510 (
     // Comb
     output reg segment_bs,
 
+    // LCD Segments SM5a
+    output wire [3:0] w_prime[9],
+    output wire [3:0] w_main [9],
+
     // Audio
     // output reg [1:0] buzzer_r,
     output wire [3:0] output_r,
@@ -84,6 +88,9 @@ module sm510 (
   assign rom_addr = inst.rom_addr;
   assign output_shifter_s = inst.shifter_w;
   assign output_r = inst.output_r;
+
+  assign w_prime = inst.w_prime;
+  assign w_main = inst.w_main;
 
   reg buzzer = 0;
 

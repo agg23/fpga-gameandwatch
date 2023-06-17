@@ -64,6 +64,10 @@ module gameandwatch (
   wire [31:0] input_s6_config;
   wire [31:0] input_s7_config;
 
+  wire [7:0] input_b_config;
+  wire [7:0] input_ba_config;
+  wire [7:0] input_acl_config;
+
   wire [24:0] base_addr;
   wire image_download;
   wire mask_config_download;
@@ -74,12 +78,18 @@ module gameandwatch (
   wire [25:0] addr_8bit;
   wire [7:0] data_8bit;
 
+  wire [7:0] mpu;
+  wire [3:0] cpu_id = mpu[3:0];
+
   rom_loader rom_loader (
       .clk(clk_sys_131_072),
 
       .ioctl_wr  (ioctl_wr),
       .ioctl_addr(ioctl_addr),
       .ioctl_dout(ioctl_dout),
+
+      // Main config
+      .mpu(mpu),
 
       // Input config
       .input_s0_config(input_s0_config),
@@ -90,6 +100,10 @@ module gameandwatch (
       .input_s5_config(input_s5_config),
       .input_s6_config(input_s6_config),
       .input_s7_config(input_s7_config),
+
+      .input_b_config  (input_b_config),
+      .input_ba_config (input_ba_config),
+      .input_acl_config(input_acl_config),
 
       // Data signals
       .base_addr(base_addr),
@@ -128,6 +142,7 @@ module gameandwatch (
   // Input
 
   wire [ 7:0] output_shifter_s;
+  wire [ 3:0] output_r;
 
   // Comb
   reg  [31:0] active_input_config;
@@ -135,46 +150,68 @@ module gameandwatch (
   always_comb begin
     active_input_config = input_s0_config;
 
-    if (output_shifter_s[0]) active_input_config = input_s0_config;
-    else if (output_shifter_s[1]) active_input_config = input_s1_config;
-    else if (output_shifter_s[2]) active_input_config = input_s2_config;
-    else if (output_shifter_s[3]) active_input_config = input_s3_config;
-    else if (output_shifter_s[4]) active_input_config = input_s4_config;
-    else if (output_shifter_s[5]) active_input_config = input_s5_config;
-    else if (output_shifter_s[6]) active_input_config = input_s6_config;
-    else if (output_shifter_s[7]) active_input_config = input_s7_config;
+    case (cpu_id)
+      4: begin
+        // SM5a
+        if (output_r[1]) active_input_config = input_s0_config;
+        else if (output_r[2]) active_input_config = input_s1_config;
+        else if (output_r[3]) active_input_config = input_s2_config;
+      end
+      default: begin
+        // SM510
+        if (output_shifter_s[0]) active_input_config = input_s0_config;
+        else if (output_shifter_s[1]) active_input_config = input_s1_config;
+        else if (output_shifter_s[2]) active_input_config = input_s2_config;
+        else if (output_shifter_s[3]) active_input_config = input_s3_config;
+        else if (output_shifter_s[4]) active_input_config = input_s4_config;
+        else if (output_shifter_s[5]) active_input_config = input_s5_config;
+        else if (output_shifter_s[6]) active_input_config = input_s6_config;
+        else if (output_shifter_s[7]) active_input_config = input_s7_config;
+      end
+    endcase
   end
 
   reg [3:0] input_k = 0;
 
+  reg input_beta = 0;
+  reg input_ba = 0;
+
+  // TODO: Unused
+  reg input_acl = 0;
+
   // Map from config value to control
   function input_mux([7:0] config_value);
-    case (config_value)
-      0: return dpad_up;
-      1: return dpad_down;
-      2: return dpad_left;
-      3: return dpad_right;
+    reg out;
+
+    // High bit is active low flag
+    case (config_value[6:0])
+      0: out = dpad_up;
+      1: out = dpad_down;
+      2: out = dpad_left;
+      3: out = dpad_right;
 
       // Buttons
-      4: return button_b;
-      5: return button_a;
-      6: return button_y;
-      7: return button_x;
+      4: out = button_b;
+      5: out = button_a;
+      6: out = button_y;
+      7: out = button_x;
 
       // Buttons 5-8 unhandled
       // Select is Time
-      12: return button_trig_l;
-      13: return button_select;
-      14: return button_start;
+      12: out = button_trig_l;
+      13: out = button_select;
+      14: out = button_start;
 
       // Service1 unhandled
       // Service 2 is Alarm
-      16: return button_trig_r;
+      16: out = button_trig_r;
 
       // Other values unhandled
 
-      default: return 0;
+      default: out = 0;
     endcase
+
+    return config_value[7] ? ~out : out;
   endfunction
 
   always @(posedge clk_sys_131_072) begin
@@ -184,6 +221,10 @@ module gameandwatch (
       input_mux(active_input_config[15:8]),
       input_mux(active_input_config[7:0])
     };
+
+    input_beta <= input_mux(input_b_config);
+    input_ba <= input_mux(input_ba_config);
+    input_acl <= input_mux(input_acl_config);
   end
 
   ////////////////////////////////////////////////////////////////////////////////////////
@@ -208,6 +249,9 @@ module gameandwatch (
   wire [15:0] current_segment_b;
   wire current_segment_bs;
 
+  wire [3:0] current_w_prime[9];
+  wire [3:0] current_w_main[9];
+
   sm510 sm510 (
       .clk(clk_sys_131_072),
 
@@ -215,13 +259,15 @@ module gameandwatch (
 
       .reset(reset),
 
+      .cpu_id(cpu_id),
+
       .rom_data(rom_data),
       .rom_addr(rom_addr),
 
       .input_k(input_k),
 
-      .input_ba  (1),
-      .input_beta(1),
+      .input_ba  (input_ba),
+      .input_beta(input_beta),
 
       .output_lcd_h_index(output_lcd_h_index),
 
@@ -231,12 +277,18 @@ module gameandwatch (
       .segment_b (current_segment_b),
       .segment_bs(current_segment_bs),
 
+      .w_prime(current_w_prime),
+      .w_main (current_w_main),
+
       // TODO: This only uses one of the pins
       // .buzzer_r(sound),
+      .output_r(output_r),
 
       // Settings
       .accurate_lcd_timing(accurate_lcd_timing)
   );
+
+  assign sound = output_r[0];
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // Mask
@@ -250,6 +302,12 @@ module gameandwatch (
   reg [15:0] cache_segment_b[4];
   reg [1:0] cache_segment_bs;
 
+  reg [3:0] w_prime[9];
+  reg [3:0] w_main[9];
+
+  reg [3:0] cache_w_prime[9];
+  reg [3:0] cache_w_main[9];
+
   // Comb
   reg [1:0] current_h_index;
   reg prev_vblank = 0;
@@ -262,6 +320,14 @@ module gameandwatch (
     segment_b[output_lcd_h_index] <= current_segment_b;
     segment_bs[output_lcd_h_index] <= current_segment_bs;
 
+    if (output_lcd_h_index[0]) begin
+      // W'
+      w_prime <= current_w_prime;
+    end else begin
+      // W
+      w_main <= current_w_main;
+    end
+
     if (vblank_int && ~prev_vblank) begin
       cache_segment_a[0] <= segment_a[0];
       cache_segment_a[1] <= segment_a[1];
@@ -273,7 +339,10 @@ module gameandwatch (
       cache_segment_b[2] <= segment_b[2];
       cache_segment_b[3] <= segment_b[3];
 
-      cache_segment_bs   <= segment_bs;
+      cache_segment_bs <= segment_bs;
+
+      cache_w_prime <= w_prime;
+      cache_w_main <= w_main;
     end
   end
 
@@ -294,12 +363,27 @@ module gameandwatch (
     display_segment = 0;
 
     if (has_segment) begin
-      case (segment_line_select)
-        4'h0: display_segment = cache_segment_a[segment_row][segment_column];
-        4'h1: display_segment = cache_segment_b[segment_row][segment_column];
-        4'h2: display_segment = cache_segment_bs[segment_row];
+      case (cpu_id)
+        4: begin
+          // SM5a
+          if (segment_row == 2'h1) begin
+            // W'
+            display_segment = cache_w_prime[segment_line_select][segment_column];
+          end else begin
+            // W
+            display_segment = cache_w_main[segment_line_select][segment_column];
+          end
+        end
         default: begin
-          // TODO: What happens in these cases?
+          // SM510
+          case (segment_line_select)
+            4'h0: display_segment = cache_segment_a[segment_row][segment_column];
+            4'h1: display_segment = cache_segment_b[segment_row][segment_column];
+            4'h2: display_segment = cache_segment_bs[segment_row];
+            default: begin
+              // TODO: What happens in these cases?
+            end
+          endcase
         end
       endcase
     end
