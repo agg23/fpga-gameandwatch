@@ -615,4 +615,9 @@ interface instructions (
   //     end
   //   end
   // endtask
+
+  task dta();
+    // DTA. Copy high bits of clock divider to Acc
+    Acc <= divider[14:11];
+  endtask
 endinterface

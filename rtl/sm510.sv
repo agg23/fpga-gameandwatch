@@ -652,6 +652,13 @@ module sm510 (
         end
         STAGE_PERF_3: begin
           casex (last_opcode)
+            8'h5E: begin
+              // SM5a: Extended opcodes
+              casex (opcode)
+                8'h00: inst.cend();  // CEND. Stop clock
+                8'h04: inst.dta();  // DTA. Copy high bits of clock divider to Acc
+              endcase
+            end
             8'h5F: begin
               // LBL xy (2 byte). Immed is only second byte. Set Bm to high 3 bits of immed, and Bl to low 4 immed. Highest bit is unused
               inst.Bm <= opcode[6:4];
