@@ -4,6 +4,8 @@ module divider (
 
     input wire reset,
 
+    input wire [3:0] cpu_id,
+
     input wire reset_gamma,
     input wire reset_divider,
 
@@ -24,7 +26,10 @@ module divider (
 
   always @(posedge clk) begin
     if (reset) begin
-      gamma <= 0;
+      case (cpu_id)
+        4:       gamma <= 1;  // SM5a
+        default: gamma <= 0;  // SM510
+      endcase
 
       divider <= 0;
       divider_1s_tick <= 0;

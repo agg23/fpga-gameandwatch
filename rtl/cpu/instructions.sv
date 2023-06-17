@@ -1,6 +1,7 @@
 interface instructions (
     // Data
     input wire [7:0] opcode,
+    input wire [7:0] last_opcode,
     input wire [3:0] ram_data,
 
     // Internal
@@ -25,6 +26,7 @@ interface instructions (
   wire [11:0] pc = {Pu, Pm, Pl};
   wire [11:0] rom_addr = pc;
 
+  // Reused as entire stack in SM5a
   reg [11:0] stack_s = 0;
   reg [11:0] stack_r = 0;
 
@@ -76,6 +78,23 @@ interface instructions (
   reg [3:0] ram_wr_data = 0;
 
   ////////////////////////////////////////////////////////////////////////////////////////
+  // SM5a Registers
+
+  // Bank select used by some jumps
+  reg cb_bank = 0;
+
+  // MAME calls this `m_rsub`
+  reg within_subroutine = 0;
+
+  reg [3:0] w_prime[9];
+  reg [3:0] w_main[9];
+
+  // LCD CN flag. MAME uses bit 3 of `m_bp` for this
+  reg lcd_cn = 0;
+
+  reg m_prime = 0;
+
+  ////////////////////////////////////////////////////////////////////////////////////////
   // Instruction shortcuts
 
   task exc_x(reg swap);
@@ -101,6 +120,14 @@ interface instructions (
     skip_next_instr <= Bl == 4'hF;
   endtask
 
+  task incb_sm500();
+    // INCB. Increment Bl. If Bl was 0x7, skip next
+    next_ram_addr[3:0] <= Bl + 4'h1;
+    wr_next_ram_addr <= 1;
+
+    skip_next_instr <= Bl == 4'h7;
+  endtask
+
   task decb();
     // DECB. Decrement Bl. If Bl was 0x0, skip next
     next_ram_addr[3:0] <= Bl - 4'h1;
@@ -109,9 +136,12 @@ interface instructions (
     skip_next_instr <= Bl == 4'h0;
   endtask
 
-  task pop_stack();
+  task pop_stack(reg update_s);
     {Pu, Pm, Pl} <= stack_s;
-    stack_s <= stack_r;
+
+    if (update_s) begin
+      stack_s <= stack_r;
+    end
   endtask
 
   task push_stack(reg [11:0] next_pc);
@@ -131,6 +161,11 @@ interface instructions (
     // SBM. Set high bit of Bm high for next instruction only. Returns to previous value after
     // This is masked directly into the RAM input
     temp_sbm <= 1;
+  endtask
+
+  task sbm_sm500();
+    // SBM. Set high bit of Bm high
+    Bm[2] <= 1;
   endtask
 
   task atpl();
@@ -189,27 +224,27 @@ interface instructions (
     ram_wr <= 1;
   endtask
 
-  task exc();
-    // 0x10-13: EXC x. Swap Acc and RAM. XOR Bm with immed
-    exc_x(1);
-  endtask
+  // task exc();
+  //   // 0x10-13: EXC x. Swap Acc and RAM. XOR Bm with immed
+  //   exc_x(1);
+  // endtask
 
-  task exci();
-    // 0x14-17: EXCI x. Swap Acc and RAM. XOR Bm with immed. Increment Bl. If Bl was 0xF, skip next
-    exc_x(1);
-    incb();
-  endtask
+  // task exci();
+  //   // 0x14-17: EXCI x. Swap Acc and RAM. XOR Bm with immed. Increment Bl. If Bl was 0xF, skip next
+  //   exc_x(1);
+  //   incb();
+  // endtask
 
-  task lda();
-    // 0x18-1B: LDA x. Load Acc with RAM value. XOR Bm with immed
-    exc_x(0);
-  endtask
+  // task lda();
+  //   // 0x18-1B: LDA x. Load Acc with RAM value. XOR Bm with immed
+  //   exc_x(0);
+  // endtask
 
-  task excd();
-    // 0x1C-1F: EXCD x. Swap Acc and RAM. XOR Bm with immed. Decrement Bl. If Bl was 0x0, skip next
-    exc_x(1);
-    decb();
-  endtask
+  // task excd();
+  //   // 0x1C-1F: EXCD x. Swap Acc and RAM. XOR Bm with immed. Decrement Bl. If Bl was 0x0, skip next
+  //   exc_x(1);
+  //   decb();
+  // endtask
 
   task lax();
     // LAX x. Load Acc with immed. If next instruction is LAX, skip it
@@ -237,6 +272,12 @@ interface instructions (
 
     Bl <= {ored, ored, opcode[3:2]};
     Bm[1:0] <= opcode[1:0];
+  endtask
+
+  task lb_sm500();
+    // LB x. Set Bm to lower 2 bits immed. Set lower Bl to upper 2 bits immed. Set upper Bl to 2 if immed had data
+    Bl <= {opcode[3:2] != 0 ? 2'b10 : 2'b0, opcode[3:2]};
+    Bm <= {1'b0, opcode[1:0]};
   endtask
 
   task tb();
@@ -310,10 +351,20 @@ interface instructions (
     shifter_w <= {shifter_w[6:0], 1'b0};
   endtask
 
+  // task wr_sm500(reg [3:0] w_length);
+  //   // WR. Shift Acc (0 high bit) into W'
+  //   shift_w_prime(w_length, Acc & 4'h7);
+  // endtask
+
   task ws();
     // WS. Shift 1 into W
     shifter_w <= {shifter_w[6:0], 1'b1};
   endtask
+
+  // task ws_sm500(reg [3:0] w_length);
+  //   // WS. Shift Acc (1 high bit) into W'
+  //   shift_w_prime(w_length, Acc | 4'h8);
+  // endtask
 
   task idiv();
     // IDIV. Reset clock divider
@@ -355,27 +406,186 @@ interface instructions (
     lcd_bc <= carry;
   endtask
 
-  task rtn0();
-    // RTN0. Pop stack. Move S into PC, and R into S
-    pop_stack();
-  endtask
+  // task rtn0();
+  //   // RTN0. Pop stack. Move S into PC, and R into S
+  //   pop_stack();
+  //   within_subroutine <= 0;
+  // endtask
 
-  task rtn1();
-    // RTN1. Pop stack. Move S into PC, and R into S. Skip next instruction
-    pop_stack();
+  // task rtn1();
+  //   // RTN1. Pop stack. Move S into PC, and R into S. Skip next instruction
+  //   pop_stack();
 
-    skip_next_instr <= 1;
-  endtask
+  //   skip_next_instr <= 1;
+  //   within_subroutine <= 0;
+  // endtask
 
   task t();
     // T xy. Short jump, within page. Set Pl to immediate
     Pl <= opcode[5:0];
   endtask
 
-  task tm();
-    // TM x. Jumps to IDX table, and executes that instruction. Push PC + 1 into stack
-    push_stack(pc);
+  // task tm();
+  //   // TM x. Jumps to IDX table, and executes that instruction. Push PC + 1 into stack
+  //   push_stack(pc);
 
-    {Pu, Pm, Pl} <= {2'b0, 4'b0, opcode[5:0]};
+  //   {Pu, Pm, Pl} <= {2'b0, 4'b0, opcode[5:0]};
+  // endtask
+
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // SM5a Instructions
+
+  task ptw(reg [3:0] w_length);
+    // PTW. Copy last two values from W' to W
+    w_main[w_length-1] <= w_prime[w_length-1];
+    w_main[w_length-2] <= w_prime[w_length-2];
   endtask
+
+  task tw(reg [3:0] w_length);
+    // TW. Copy W' to W
+    int i;
+
+    for (i = 0; i < w_length; i += 1) begin
+      w_main[i] <= w_prime[i];
+    end
+  endtask
+
+  reg [3:0] pla_data[32] = '{
+      4'he,
+      4'h0,
+      4'hc,
+      4'h8,
+      4'h2,
+      4'ha,
+      4'he,
+      4'h2,
+      4'he,
+      4'ha,
+      4'h0,
+      4'h0,
+      4'h2,
+      4'ha,
+      4'h2,
+      4'h2,
+      4'hb,
+      4'h9,
+      4'h7,
+      4'hf,
+      4'hd,
+      4'he,
+      4'he,
+      4'hb,
+      4'hf,
+      4'hf,
+      4'h4,
+      4'h0,
+      4'hd,
+      4'he,
+      4'h4,
+      4'h0
+  };
+
+  function [3:0] pla_digit();
+    reg [3:0] temp;
+
+    temp = pla_data[{lcd_cn, Acc}];
+
+    return temp | (~lcd_cn && m_prime);
+  endfunction
+
+  task shift_w_prime(reg [3:0] w_length, reg [3:0] new_value);
+    int i;
+    for (i = 0; i < 8; i += 1) begin
+      w_prime[i] <= w_prime[i+1];
+    end
+    // Put new value in correct position
+    w_prime[w_length-1] <= new_value;
+  endtask
+
+  // task dtw(reg [3:0] w_length);
+  //   // DTW. Shift PLA value into W'
+  //   reg [3:0] digit;
+  //   digit = pla_digit();
+
+  //   shift_w_prime(w_length, digit);
+  // endtask
+
+  task comcn();
+    // COMCN. XOR (complement) LCD CN flag
+    lcd_cn <= lcd_cn ^ 1'b1;
+  endtask
+
+  // task pdtw(reg [3:0] w_length);
+  //   // PDTW. Shift last two nibbles of W', moving one PLA value in
+  //   reg [3:0] w_prime_temp[9];
+  //   reg [3:0] digit;
+
+  //   digit = pla_digit();
+
+  //   w_prime_temp[w_length-2] = w_prime_temp[w_length-1];
+  //   w_prime_temp[w_length-1] = digit;
+
+  //   w_prime <= w_prime_temp;
+  // endtask
+
+  task rmf();
+    // RMF. Clear m' and Acc
+    m_prime <= 0;
+    Acc <= 0;
+  endtask
+
+  task smf();
+    // SMF. Set m'
+    m_prime <= 1;
+  endtask
+
+  task rbm();
+    // RBM. Clear Bm high bit
+    Bm[2] <= 0;
+  endtask
+
+  task comcb();
+    // COMCB. XOR (complement) CB
+    cb_bank <= cb_bank ^ 1'b1;
+  endtask
+
+  task ssr();
+    // SSR. Set stack higher bits bits to immed. Set E for next inst
+    stack_s[9:6] <= opcode[3:0];
+  endtask
+
+  task tr();
+    // TR. Long/short jump. Uses stack page value for distance
+    // Short jump is set regardless
+    Pl <= opcode[5:0];
+
+    if (~within_subroutine) begin
+      // Do long jump. Pl was already set above
+      {Pu, Pm} <= {1'b0, cb_bank, stack_s[9:6]};
+    end
+  endtask
+
+  // task trs(reg field);
+  //   // TRS. Call subroutine
+  //   if (within_subroutine) begin
+  //     Pl <= {2'b0, opcode[3:0]};
+  //     Pm[1:0] <= opcode[5:4];
+  //   end else begin
+  //     // Enter subroutine
+  //     reg [3:0] temp_su;
+
+  //     within_subroutine <= 1;
+
+  //     temp_su = stack_s[9:6];
+
+  //     push_stack(pc);
+
+  //     if (last_opcode[7:4] == 4'h7) begin
+  //       // Last instruction was SSR, and E flag would be set
+  //       {Pu, Pm, Pl} <= {1'b0, cb_bank, temp_su, opcode[5:0]};
+  //     end else begin
+  //       {Pu, Pm, Pl} <= {1'b0, field, 4'b0, opcode[5:0]};
+  //     end
+  //   end
+  // endtask
 endinterface

@@ -11,9 +11,9 @@
 
 ## Timing
 
-Docs list oscillator at 32.768kHz and typical 61us instruction timing, which implies two cycles. Assuming two byte instructions, and particularly `TMI` to `IDX` is multiple cycles. Skipping an instruction takes two cycles \[1]
+Docs list oscillator at 32.768kHz and typical 61us instruction timing, which implies two cycles. Assuming two byte instructions, and particularly `TM` to `IDX` is multiple cycles. Skipping an instruction takes two cycles \[1]
 
-1. MAME uses 2 cycle and 4 cycle instructions only. We've followed their lead, even though the non-`TMI` two byte instructions can be done in 3
+1. MAME uses 2 cycle and 4 cycle instructions only. We've followed their lead, even though the non-`TM` two byte instructions can be done in 3
 
 ## 1. RAM Address Instructions
 
@@ -39,7 +39,7 @@ Notes:
 | `TL xyz` (2 byte)      | `0x70-7A` X `0x00-FE` Y | `{Pu, Pm, Pl} <- {y[7:6], x[3:0], y[5:0]}`                           | Long jump. Load `PC` with immediates as shown                                                             |
 | `TML xyz` (2 byte)     | `0x7C-7F` X `0x00-FE` Y | `R <- S <- PC + 1, Pu <- y[7:6], Pm <- {2'b0, x[1:0]}, Pl <- y[5:0]` | Long call. Push `PC + 2` into stack registers. Load PC with immediates as shown \[1]                      |
 | `TM x` (psuedo 2 byte) | `0xC0-FE`               | `R <- S <- PC + 1, {Pu, Pm, Pl} <- {2'b0, 4'b0, x[5:0]}`             | Jumps to IDX table, and executes (see `IDX` below). Push `PC + 1` into stack registers. Jump to zero page |
-| `IDX yz`               | `0x00-FE`               | `{Pu, Pm, Pl} <- {y[7:6], 4'h4, x[5:0]}, `                           | Not a real opcode. Always preceeded by `TMI`. Loads immediate into PC                                     |
+| `IDX yz`               | `0x00-FE`               | `{Pu, Pm, Pl} <- {y[7:6], 4'h4, x[5:0]}, `                           | Not a real opcode. Always preceeded by `TM`. Loads immediate into PC                                     |
 | `T xy`                 | `0x80-BF`               | `Pl <- x[5:0]`                                                       | Short jump, within page. Set `Pl` to immediate                                                            |
 
 Note
@@ -126,13 +126,17 @@ Note:
 * Adds `m'` flag register to accompany `W'`
 * Adds page setting functionality with the `Cs`, `Su`, `Sl` stack registers
 * Adds `CB` bank select for certain branches (`TR` and `TRS`)
+* Adds 4 bit `R` output
 * Removes stack `S` and `R`
 * Removes LCD `H` and segments `A` and `B`. Uses `O` output pins based on `W` and `W'`
+* Removes 2 bit buzzer `R` output
 
 ## Instructions
 
 | Mnemonic | Opcode      | Operation                                                                                                               | Replaces                                |
 | -------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `SBM`    | `0x02`      | Set high bit of `Bm` high                                                                                               | `SBM`, just different definition        |
+| `LB`     | `0x4X`      | Set `Bm` to low 2 immed. Set `Bl` to high two immed ORed with 8                                                         | `LB`, just different definition         |
 | `SSR`    | `0x7X`      | Set stack `S` `Pm` (page) to immed. Sets `E` flag for next opcode                                                       | `TL` and `TML`, long jump and long call |
 | `TR`     | `0x80-0xBF` | Long or short jump. Uses set page value to determine whether long/short \[1]                                            | `T` short jump                          |
 | `TRS`    | `0xC0-0xFF` | Call subroutine. Sets `Pl` to immed, pushes stack. Uses stored page/bank if `E` flag is set from `SSR` prev instruction | `TM` jump to IDX table                  |
@@ -142,8 +146,11 @@ Note:
 | `PTW`    | `0x59`      | Copy last two values from `W'` to `W`                                                                                   | `ATL` set `L` segment output            |
 | `TW`     | `0x5C`      | Copy `W'` to `W`                                                                                                        | None                                    |
 | `DTW`    | `0x5D`      | Shift PLA value into `W'`. See \[2]                                                                                     | `CEND` stop clock                       |
-| `COMCN`  | `0x60`      | XOR (complement) high bit of `BP`                                                                                       | `ATFC` set `Y` segment output           |
-| `PDTW`   | `0x61`      | Shift one PLA value into `W'` \[2]                                                                                      | `ATR` set buzzer                        |
+| `COMCN`  | `0x60`      | XOR (complement) LCD `CN` flag                                                                                          | `ATFC` set `Y` segment output           |
+| `PDTW`   | `0x61`      | Shift last two nibbles only, moving one PLA value into `W'` \[2]                                                        | `ATR` set buzzer                        |
+| `WR`     | `0x62`      | Shift Acc (with 0 high bit) into `W'`                                                                                   | `WR`, just different definition         |
+| `WS`     | `0x63`      | Shift Acc (with 1 high bit) into `W'`                                                                                   | `WS`, just different definition         |
+| `INCB`   | `0x64`      | Increment `Bl`. If `Bl` was 8, skip next inst                                                                           | `INCB`, just different definition       |
 | `RMF`    | `0x68`      | Clear `m'` and Acc                                                                                                      | `TF1` skip if divider                   |
 | `SMF`    | `0x69`      | Set `m'`                                                                                                                | `TF4` skip if divider                   |
 | `RBM`    | `0x6B`      | Clear `Bm` high bit                                                                                                     | `ROT` rotate right                      |
