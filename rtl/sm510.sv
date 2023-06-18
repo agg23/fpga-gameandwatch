@@ -600,6 +600,8 @@ module sm510 (
 
       inst.lcd_cn <= 0;
       inst.m_prime <= 0;
+
+      inst.init_pla();
     end else if (clk_en) begin
       inst.reset_divider <= 0;
       inst.reset_divider_keep_6 <= 0;

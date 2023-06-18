@@ -72,7 +72,7 @@ interface instructions (
   reg [3:0] stored_output_r = 0;
   reg [3:0] output_r = 0;
   // Direct passthrough of R0 on 0x7, otherwise use the divider bit indicated by this value
-  reg [2:0] output_r_mask = 4'h7;
+  reg [2:0] output_r_mask = 3'h7;
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // RAM
@@ -166,7 +166,7 @@ interface instructions (
       4: begin
         // SM5a
         reg r0_mask;
-        r0_mask = output_r_mask == 4'h7 ? 1 : divider[output_r_mask];
+        r0_mask = output_r_mask == 3'h7 ? 1'b1 : divider[output_r_mask];
 
         output_r <= {~stored_output_r[3:1], r0_mask && ~stored_output_r[0]};
       end
@@ -483,40 +483,46 @@ interface instructions (
     end
   endtask
 
-  reg [3:0] pla_data[32] = '{
-      4'he,
-      4'h0,
-      4'hc,
-      4'h8,
-      4'h2,
-      4'ha,
-      4'he,
-      4'h2,
-      4'he,
-      4'ha,
-      4'h0,
-      4'h0,
-      4'h2,
-      4'ha,
-      4'h2,
-      4'h2,
-      4'hb,
-      4'h9,
-      4'h7,
-      4'hf,
-      4'hd,
-      4'he,
-      4'he,
-      4'hb,
-      4'hf,
-      4'hf,
-      4'h4,
-      4'h0,
-      4'hd,
-      4'he,
-      4'h4,
-      4'h0
-  };
+  reg [3:0] pla_data[32];
+
+  task init_pla();
+    // Quartus ignores the initialization of pla_data if I do it inline (maybe because of the interface?)
+    // We call separately as a part of reset to initialize the PLA
+    pla_data <= '{
+        4'he,
+        4'h0,
+        4'hc,
+        4'h8,
+        4'h2,
+        4'ha,
+        4'he,
+        4'h2,
+        4'he,
+        4'ha,
+        4'h0,
+        4'h0,
+        4'h2,
+        4'ha,
+        4'h2,
+        4'h2,
+        4'hb,
+        4'h9,
+        4'h7,
+        4'hf,
+        4'hd,
+        4'he,
+        4'he,
+        4'hb,
+        4'hf,
+        4'hf,
+        4'h4,
+        4'h0,
+        4'hd,
+        4'he,
+        4'h4,
+        4'h0
+    };
+  endtask
 
   function [3:0] pla_digit();
     reg [3:0] temp;
