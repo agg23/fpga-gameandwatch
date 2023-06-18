@@ -160,24 +160,30 @@ fn build_config(platform: &PlatformSpecification) -> Result<Vec<u8>, String> {
         }
     }
 
+    let unused_action = NamedAction {
+        action: Action::Unused,
+        active_low: true,
+        name: None,
+    };
+
     let b_port = if let Some(b_port) = b_port {
         input_value_for_port(b_port)
     } else {
-        0
+        input_value_for_port(unused_action.clone())
     };
     config.push(b_port);
 
     let ba_port = if let Some(ba_port) = ba_port {
         input_value_for_port(ba_port)
     } else {
-        0
+        input_value_for_port(unused_action.clone())
     };
     config.push(ba_port);
 
     let acl_port = if let Some(acl_port) = acl_port {
         input_value_for_port(acl_port)
     } else {
-        0
+        input_value_for_port(unused_action)
     };
     config.push(acl_port);
 
