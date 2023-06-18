@@ -35,15 +35,18 @@ module sm510 (
     output reg segment_bs,
 
     // LCD Segments SM5a
-    output wire [3:0] w_prime[9],
-    output wire [3:0] w_main [9],
+    output reg [3:0] w_prime[9],
+    output reg [3:0] w_main [9],
 
     // Audio
     // output reg [1:0] buzzer_r,
     output wire [3:0] output_r,
 
     // Settings
-    input wire accurate_lcd_timing
+    input wire accurate_lcd_timing,
+
+    // Utility
+    output wire divider_1khz
 );
   ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -60,7 +63,6 @@ module sm510 (
   wire divider_4hz;
   wire divider_32hz;
   wire divider_64hz;
-  wire divider_1khz;
 
   wire [14:0] divider;
 
@@ -88,9 +90,6 @@ module sm510 (
   assign rom_addr = inst.rom_addr;
   assign output_shifter_s = inst.shifter_w;
   assign output_r = inst.output_r;
-
-  assign w_prime = inst.w_prime;
-  assign w_main = inst.w_main;
 
   reg buzzer = 0;
 
@@ -166,8 +165,11 @@ module sm510 (
         lcd_h_index <= lcd_h_index + 2'b1;
 
         // Copy over segments
-        segment_a   <= ram_segment_a;
-        segment_b   <= ram_segment_b;
+        segment_a <= ram_segment_a;
+        segment_b <= ram_segment_b;
+
+        w_prime <= inst.w_prime;
+        w_main <= inst.w_main;
       end
     end
   end

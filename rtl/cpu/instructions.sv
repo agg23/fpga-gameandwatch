@@ -183,6 +183,7 @@ interface instructions (
   task atbp();
     // ATBP. Set LCD BP to Acc
     lcd_bp <= Acc[0];
+    lcd_cn <= Acc[3];
   endtask
 
   task sbm();

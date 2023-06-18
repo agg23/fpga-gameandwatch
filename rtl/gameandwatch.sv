@@ -285,7 +285,10 @@ module gameandwatch (
       .output_r(output_r),
 
       // Settings
-      .accurate_lcd_timing(accurate_lcd_timing)
+      .accurate_lcd_timing(accurate_lcd_timing),
+
+      // Utility
+      .divider_1khz(divider_1khz)
   );
 
   assign sound = output_r[0];
@@ -308,12 +311,21 @@ module gameandwatch (
   reg [3:0] cache_w_prime[9];
   reg [3:0] cache_w_main[9];
 
+  reg [4:0] decay_w_prime[9][4];
+
+  wire divider_1khz;
+  reg prev_divider_1khz = 0;
+
   // Comb
   reg [1:0] current_h_index;
   reg prev_vblank = 0;
 
   always @(posedge clk_sys_131_072) begin
+    int i;
+    int j;
+
     prev_vblank <= vblank_int;
+    prev_divider_1khz <= divider_1khz;
 
     // TODO: This is very similar to the logic already in `ram.sv`
     segment_a[output_lcd_h_index] <= current_segment_a;
@@ -326,6 +338,26 @@ module gameandwatch (
     end else begin
       // W
       w_main <= current_w_main;
+    end
+
+    if (divider_1khz && ~prev_divider_1khz) begin
+      for (i = 0; i < 9; i += 1) begin
+        for (j = 0; j < 4; j += 1) begin
+          // Modify decay
+          if (w_prime[i][j] && decay_w_prime[i][j] < 5'h1F) begin
+            // Segment is on, and decay isn't max
+            // Increment decay
+            decay_w_prime[i][j] <= decay_w_prime[i][j] + 5'h1;
+          end else if (~w_prime[i][j] && decay_w_prime[i][j] > 5'h0) begin
+            // Segment is off, and decay isn't min
+            // Decrement decay
+            decay_w_prime[i][j] <= decay_w_prime[i][j] - 5'h1;
+          end
+
+          // Update segment array (an iteration delayed)
+          cache_w_prime[i][j] <= decay_w_prime[i][j] > 5'h10;
+        end
+      end
     end
 
     if (vblank_int && ~prev_vblank) begin
@@ -341,7 +373,7 @@ module gameandwatch (
 
       cache_segment_bs <= segment_bs;
 
-      cache_w_prime <= w_prime;
+      // cache_w_prime <= w_prime;
       cache_w_main <= w_main;
     end
   end
