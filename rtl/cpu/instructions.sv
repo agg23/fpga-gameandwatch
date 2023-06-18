@@ -50,9 +50,6 @@ interface instructions (
 
   reg [7:0] shifter_w = 0;
 
-  // TODO: Remove and replace with just buzzer_r
-  // reg [1:0] cached_buzzer_r = 0;
-
   // Control
   reg skip_next_instr = 0;
   // Skip next instruction only if next is LAX
@@ -71,8 +68,10 @@ interface instructions (
 
   reg [3:0] stored_output_r = 0;
   reg [3:0] output_r = 0;
+
+  localparam R_MASK_DIRECT = 3'h7;
   // Direct passthrough of R0 on 0x7, otherwise use the divider bit indicated by this value
-  reg [2:0] output_r_mask = 3'h7;
+  reg [2:0] output_r_mask = R_MASK_DIRECT;
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // RAM
@@ -166,13 +165,21 @@ interface instructions (
       4: begin
         // SM5a
         reg r0_mask;
-        r0_mask = output_r_mask == 3'h7 ? 1'b1 : divider[output_r_mask];
+        r0_mask = output_r_mask == R_MASK_DIRECT ? 1'b1 : divider[output_r_mask];
 
         output_r <= {~stored_output_r[3:1], r0_mask && ~stored_output_r[0]};
       end
       default: begin
         // SM510
-        // TODO: Populate
+        if (output_r_mask == R_MASK_DIRECT) begin
+          output_r <= {2'b0, stored_output_r[1:0]};
+        end else begin
+          reg [3:0] out;
+          out = divider[output_r_mask];
+          out[3] = out[3] | out[0];
+
+          output_r <= stored_output_r & out;
+        end
       end
     endcase
   endtask

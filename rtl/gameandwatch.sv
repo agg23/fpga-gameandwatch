@@ -206,6 +206,8 @@ module gameandwatch (
       // Service 2 is Alarm
       16: out = button_trig_r;
 
+      // This input is unused
+      7'h7F: out = 0;
       // Other values unhandled
 
       default: out = 0;
@@ -280,8 +282,6 @@ module gameandwatch (
       .w_prime(current_w_prime),
       .w_main (current_w_main),
 
-      // TODO: This only uses one of the pins
-      // .buzzer_r(sound),
       .output_r(output_r),
 
       // Settings

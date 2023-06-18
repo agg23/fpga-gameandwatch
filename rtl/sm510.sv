@@ -39,7 +39,6 @@ module sm510 (
     output reg [3:0] w_main [9],
 
     // Audio
-    // output reg [1:0] buzzer_r,
     output wire [3:0] output_r,
 
     // Settings
@@ -90,22 +89,6 @@ module sm510 (
   assign rom_addr = inst.rom_addr;
   assign output_shifter_s = inst.shifter_w;
   assign output_r = inst.output_r;
-
-  reg buzzer = 0;
-
-  reg [1:0] delay_counter = 0;
-  // always @(posedge clk) begin
-  //   if (clk_en) begin
-  //     delay_counter <= delay_counter + 2'h1;
-
-  //     if (delay_counter == 0) begin
-  //       buzzer <= ~buzzer;
-
-  //       buzzer_r[0] <= inst.cached_buzzer_r[0] ? buzzer : 1'b0;
-  //       buzzer_r[1] <= inst.cached_buzzer_r[1] ? ~buzzer : 1'b0;
-  //     end
-  //   end
-  // end
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // Divider
@@ -401,7 +384,7 @@ module sm510 (
       8'h00: begin
         // SKIP. NOP
       end
-      8'h01: inst.atr();  // ATR. Set R buzzer control value to the bottom two bits of Acc
+      8'h01: inst.atr();  // ATR. Set R buzzer control value to Acc
       8'h02: inst.sbm_sm500();  // SBM. Set high bit of Bm high
       8'h03: inst.atbp();  // ATBP. Set LCD BP to Acc
       8'b0000_01XX: inst.rm();  // 0x04-07: RM x. Zero RAM at bit indexed by immediate
