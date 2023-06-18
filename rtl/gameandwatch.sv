@@ -312,6 +312,7 @@ module gameandwatch (
   reg [3:0] cache_w_main[9];
 
   reg [4:0] decay_w_prime[9][4];
+  reg [4:0] decay_w_main[9][4];
 
   wire divider_1khz;
   reg prev_divider_1khz = 0;
@@ -319,6 +320,9 @@ module gameandwatch (
   // Comb
   reg [1:0] current_h_index;
   reg prev_vblank = 0;
+
+  localparam DECAY_MAX = 5'h1F;
+  localparam DECAY_MIN_DISPLAY = 5'h10;
 
   always @(posedge clk_sys_131_072) begin
     int i;
@@ -343,8 +347,9 @@ module gameandwatch (
     if (divider_1khz && ~prev_divider_1khz) begin
       for (i = 0; i < 9; i += 1) begin
         for (j = 0; j < 4; j += 1) begin
+          // W'
           // Modify decay
-          if (w_prime[i][j] && decay_w_prime[i][j] < 5'h1F) begin
+          if (w_prime[i][j] && decay_w_prime[i][j] < DECAY_MAX) begin
             // Segment is on, and decay isn't max
             // Increment decay
             decay_w_prime[i][j] <= decay_w_prime[i][j] + 5'h1;
@@ -355,7 +360,16 @@ module gameandwatch (
           end
 
           // Update segment array (an iteration delayed)
-          cache_w_prime[i][j] <= decay_w_prime[i][j] > 5'h10;
+          cache_w_prime[i][j] <= decay_w_prime[i][j] > DECAY_MIN_DISPLAY;
+
+          // W
+          if (w_main[i][j] && decay_w_main[i][j] < DECAY_MAX) begin
+            decay_w_main[i][j] <= decay_w_main[i][j] + 5'h1;
+          end else if (~w_main[i][j] && decay_w_main[i][j] > 5'h0) begin
+            decay_w_main[i][j] <= decay_w_main[i][j] - 5'h1;
+          end
+
+          cache_w_main[i][j] <= decay_w_main[i][j] > DECAY_MIN_DISPLAY;
         end
       end
     end
@@ -371,10 +385,7 @@ module gameandwatch (
       cache_segment_b[2] <= segment_b[2];
       cache_segment_b[3] <= segment_b[3];
 
-      cache_segment_bs <= segment_bs;
-
-      // cache_w_prime <= w_prime;
-      cache_w_main <= w_main;
+      cache_segment_bs   <= segment_bs;
     end
   end
 

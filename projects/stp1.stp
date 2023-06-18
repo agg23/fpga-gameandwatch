@@ -5581,7 +5581,7 @@
     <multi attribute="frame size" size="2" value="1920,1017"/>
     <multi attribute="jtag widget size" size="2" value="325,137"/>
   </global_info>
-  <instance enabled="true" entity_name="sld_signaltap" is_auto_node="yes" name="auto_signaltap_3" source_file="sld_signaltap.vhd">
+  <instance enabled="false" entity_name="sld_signaltap" is_auto_node="yes" name="auto_signaltap_3" source_file="sld_signaltap.vhd">
     <node_ip_info instance_id="3" mfg_id="110" node_id="0" version="6"/>
     <position_info>
       <single attribute="setup vertical scroll position" value="20"/>
