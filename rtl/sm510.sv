@@ -518,6 +518,9 @@ module sm510 (
 
   always @(posedge clk) begin
     if (reset) begin
+      // WARNING: Reset must be high for greater than one cycle so that data can cascade through
+      // some registers initial states
+
       // Initial PC to 3_7_0
       case (cpu_id)
         4:       {inst.Pu, inst.Pm, inst.Pl} <= {2'h0, 4'hF, 6'b0};  // SM5a
@@ -582,6 +585,8 @@ module sm510 (
       inst.cb_bank <= 0;
 
       inst.within_subroutine <= 0;
+
+      inst.stack_s <= inst.pc;
 
       inst.lcd_cn <= 0;
       inst.m_prime <= 0;

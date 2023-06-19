@@ -124,7 +124,7 @@ Note:
 
 * Adds `W'` shift registers, which drive output
 * Adds `m'` flag register to accompany `W'`
-* Adds page setting functionality with the `Cs`, `Su`, `Sl` stack registers
+* Adds page setting functionality with the `Cs`, `Su`, `Sl` stack registers - Stack is initialized to initial PC
 * Adds `CB` bank select for certain branches (`TR` and `TRS`)
 * Adds 4 bit `R` output
 * Removes stack `S` and `R`

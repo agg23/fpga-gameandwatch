@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate guard;
 
-use std::{borrow::Borrow, collections::HashMap, env::temp_dir, fs, path::PathBuf};
+use std::{collections::HashMap, env::temp_dir, fs, path::PathBuf};
 
 use clap::{Parser, Subcommand, ValueEnum};
 
