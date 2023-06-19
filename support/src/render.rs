@@ -1,11 +1,11 @@
 use std::{collections::HashSet, path::Path};
 
 use image::{imageops::FilterType, DynamicImage, ImageBuffer, Rgba};
-use resvg::tiny_skia::{BlendMode, Pixmap, PixmapPaint};
+use resvg::tiny_skia::{Pixmap, PixmapPaint, PremultipliedColorU8};
 use tiny_skia_path::Transform;
 
 use crate::{
-    layout::{BlendType, Bounds, Element, Screen, View, ViewElement},
+    layout::{Bounds, Element, Screen, View, ViewElement},
     manifest::{self, PresetDefinition},
     svg_manage::build_svg,
     HEIGHT, WIDTH,
@@ -132,7 +132,8 @@ pub fn render(
                         continue;
                     }
                     value => {
-                        if value.starts_with("fix") || value.starts_with("gradient") {
+                        // if value.starts_with("fix") || value.starts_with("gradient") {
+                        if value.starts_with("gradient") {
                             println!("Ignoring element by name {}", element.ref_name);
                             continue;
                         }
@@ -204,13 +205,16 @@ pub fn render(
 
                     if pixels_to_mask_id[i].is_some() {
                         // A mask pixel is at this location
-                        mask_pixmap.pixels_mut()[i] = pixel;
+                        mask_pixmap.pixels_mut()[i] =
+                            alpha_blend_colors(mask_pixmap.pixels_mut()[i], pixel);
 
                         // Also write through to the background
-                        background_pixmap.pixels_mut()[i] = pixel;
+                        background_pixmap.pixels_mut()[i] =
+                            alpha_blend_colors(background_pixmap.pixels_mut()[i], pixel);
                     } else {
                         // No mask pixel, write to background
-                        background_pixmap.pixels_mut()[i] = pixel;
+                        background_pixmap.pixels_mut()[i] =
+                            alpha_blend_colors(background_pixmap.pixels_mut()[i], pixel);
                     }
                 }
             }
@@ -254,26 +258,6 @@ pub fn render(
         }
     }
 
-    let mut debug_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
-
-    debug_pixmap.draw_pixmap(
-        0,
-        0,
-        background_pixmap.as_ref(),
-        &PixmapPaint::default(),
-        Transform::identity(),
-        None,
-    );
-
-    debug_pixmap.draw_pixmap(
-        0,
-        0,
-        mask_pixmap.as_ref(),
-        &PixmapPaint::default(),
-        Transform::identity(),
-        None,
-    );
-
     let mut output_mask = background_pixmap.clone();
 
     // Draw mask over top of background, so transparency can blend to the correct colors
@@ -291,25 +275,60 @@ pub fn render(
         let debug_background_path = asset_dir.join(format!("{platform_name}_background.png"));
         let debug_mask_path = asset_dir.join(format!("{platform_name}_mask.png"));
 
+        let mut debug_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
+
+        debug_pixmap.draw_pixmap(
+            0,
+            0,
+            background_pixmap.as_ref(),
+            &PixmapPaint::default(),
+            Transform::identity(),
+            None,
+        );
+
+        debug_pixmap.draw_pixmap(
+            0,
+            0,
+            mask_pixmap.as_ref(),
+            &PixmapPaint::default(),
+            Transform::identity(),
+            None,
+        );
+
         debug_pixmap.save_png(&debug_path).unwrap();
         background_pixmap.save_png(&debug_background_path).unwrap();
         output_mask.save_png(&debug_mask_path).unwrap();
     }
-
-    // Ok(encode(
-    //     background_pixmap.data(),
-    //     output_mask.data(),
-    //     pixels_to_mask_id.as_slice(),
-    //     asset_dir,
-    // ))
 
     Ok(RenderedData {
         background_bytes: background_pixmap,
         mask_bytes: output_mask,
         pixels_to_mask_id: pixels_to_mask_id,
     })
+}
 
-    // Ok(debug_path)
+fn alpha_blend_colors(
+    background: PremultipliedColorU8,
+    foreground: PremultipliedColorU8,
+) -> PremultipliedColorU8 {
+    let combine_values = |foreground: u8, background: u8, foreground_alpha: f32| -> u8 {
+        let foreground = foreground as f32;
+        let background = background as f32;
+
+        let floating = (foreground / 255.0) + (background / 255.0) * (1.0 - foreground_alpha);
+
+        (floating * 255.0).round() as u8
+    };
+
+    let foreground_alpha = foreground.alpha() as f32 / 255.0;
+
+    PremultipliedColorU8::from_rgba(
+        combine_values(foreground.red(), background.red(), foreground_alpha),
+        combine_values(foreground.green(), background.green(), foreground_alpha),
+        combine_values(foreground.blue(), background.blue(), foreground_alpha),
+        combine_values(foreground.alpha(), background.alpha(), foreground_alpha),
+    )
+    .unwrap()
 }
 
 fn screen_filename(index: usize, platform_name: &str, platform: &PresetDefinition) -> String {
@@ -332,24 +351,6 @@ fn screen_filename(index: usize, platform_name: &str, platform: &PresetDefinitio
     };
 
     format!("{platform_name}{suffix}.svg")
-}
-
-fn blend_to_pixmap_paint(blend: &Option<BlendType>) -> PixmapPaint {
-    let mut paint = PixmapPaint::default();
-
-    // paint.blend_mode = BlendMode::Overlay;
-
-    if let Some(blend) = blend {
-        match blend {
-            BlendType::Add => paint.blend_mode = BlendMode::Plus,
-            BlendType::Alpha => {
-                // TODO: Unimplemented
-            }
-            BlendType::Multiply => paint.blend_mode = BlendMode::Multiply,
-        }
-    }
-
-    paint
 }
 
 #[derive(Clone)]

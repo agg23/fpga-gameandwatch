@@ -6,7 +6,7 @@ use std::{
 
 use resvg::{
     tiny_skia::{self, Pixmap, PixmapPaint, PremultipliedColorU8},
-    usvg::{self, Color, NodeKind, NormalizedF64, ShapeRendering, Tree, TreeParsing},
+    usvg::{self, NodeKind, Tree, TreeParsing},
     FitTo,
 };
 
