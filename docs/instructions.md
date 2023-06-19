@@ -131,6 +131,19 @@ Note:
 * Removes LCD `H` and segments `A` and `B`. Uses `O` output pins based on `W` and `W'`
 * Removes 2 bit buzzer `R` output
 
+### Data Bus Layout
+
+Memory is arranged as 5 sets of 13 nibbles (5 x 13 x 4bits). This is exposed as:
+```
+0x00 - 0x0C: Chunk 0
+0x10 - 0x1C: Chunk 1
+0x20 - 0x2C: Chunk 2
+0x30 - 0x3C: Chunk 3
+0x40 - 0x4C: Chunk 4
+```
+
+Values outside of this range (in the form `0xXD-F` where `X` <= 4) are wrapped back to `0xXC`. Values >= `0x50` are wrapped into the `0x40` block, such that `0x67` maps to `0x47`
+
 ## Instructions
 
 | Mnemonic | Opcode      | Operation                                                                                                               | Replaces                                |

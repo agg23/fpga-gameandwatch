@@ -34,8 +34,8 @@ module rom_tb;
       // MAME defaults to these being wired high
       // .input_ba  (1'b1),
       // .input_beta(1'b1),
-      .input_ba  (1'b0),
-      .input_beta(1'b0),
+      .input_ba  (1'b1),
+      .input_beta(1'b1),
 
       .output_shifter_s(shifter_s),
 
@@ -93,7 +93,8 @@ module rom_tb;
   // initial $readmemh("dkii.hex", rom);
   // initial $readmemh("cement.hex", rom);
   // initial $readmemh("dkjr.hex", rom);
-  initial $readmemh("octopus.hex", rom);
+  // initial $readmemh("octopus.hex", rom);
+  initial $readmemh("egg.hex", rom);
 
   initial begin
     // Initialize RAM
@@ -108,9 +109,10 @@ module rom_tb;
   integer step_count;
 
   task log();
-    $fwrite(fd, "pc=%h, acc=%h, carry=%d, bm=%h, bl=%h, shifter_w=%h, gamma=%0d, div=%h\n",
+    $fwrite(fd, "pc=%h, acc=%h, carry=%d, bm=%h, bl=%h, ram=%h, shifter_w=%h, gamma=%0d, div=%h\n",
             last_pc, cpu_uut.inst.Acc, cpu_uut.inst.carry, cpu_uut.inst.Bm, cpu_uut.inst.Bl,
-            cpu_uut.inst.shifter_w, cpu_uut.inst.gamma, cpu_uut.div.divider);
+            cpu_uut.ram.ram[cpu_uut.ram.computed_addr()], cpu_uut.inst.shifter_w,
+            cpu_uut.inst.gamma, cpu_uut.div.divider);
   endtask
 
   initial begin

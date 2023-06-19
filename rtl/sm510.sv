@@ -178,6 +178,8 @@ module sm510 (
   ram ram (
       .clk(clk),
 
+      .cpu_id(cpu_id),
+
       // While temp_sbm is set, we operate as if the highest bit is high, rather than its current value
       .addr(inst.temp_sbm ? {1'b1, inst.ram_addr[5:0]} : inst.ram_addr),
       .wren(inst.ram_wr),

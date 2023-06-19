@@ -1,6 +1,8 @@
 module ram (
     input wire clk,
 
+    input wire [3:0] cpu_id,
+
     input wire [6:0] addr,
     input wire wren,
     input wire [3:0] data,
@@ -30,21 +32,55 @@ module ram (
     end
   end
 
+  // Comb
+  reg [6:0] final_addr;
+
+  // Function separated out so it can be used for testing
+  function [6:0] computed_addr();
+    case (cpu_id)
+      4: begin
+        // SM5a
+        reg [2:0] upper_addr;
+        upper_addr = addr[6:4];
+
+        if (upper_addr > 3'h4) begin
+          // Wrap 0x50 and above to 0x40
+          upper_addr = 3'h4;
+        end
+
+        computed_addr = {upper_addr, addr[3:0]};
+
+        if (addr[3:0] > 4'hC) begin
+          // Wrap 0xD-F to 0xC
+          computed_addr[3:0] = 4'hC;
+        end
+      end
+      default: begin
+        // SM510
+        computed_addr = addr;
+      end
+    endcase
+  endfunction
+
+  always_comb begin
+    final_addr = computed_addr();
+  end
+
   always @(posedge clk) begin
     // TODO: Does this need to be comb?
-    q <= ram[addr];
+    q <= ram[final_addr];
 
     if (wren) begin
-      ram[addr] <= data;
+      ram[final_addr] <= data;
 
-      if (addr >= 7'h60) begin
+      if (final_addr >= 7'h60) begin
         // Display RAM segment
-        if (addr[4]) begin
+        if (final_addr[4]) begin
           // Segment B
-          cached_segment_b[addr[3:0]] <= data;
+          cached_segment_b[final_addr[3:0]] <= data;
         end else begin
           // Segment A
-          cached_segment_a[addr[3:0]] <= data;
+          cached_segment_a[final_addr[3:0]] <= data;
         end
       end
     end
