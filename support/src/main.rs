@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate guard;
 
-use std::{collections::HashMap, env::temp_dir, fs, path::PathBuf};
+use std::{borrow::Borrow, collections::HashMap, env::temp_dir, fs, path::PathBuf};
 
 use clap::{Parser, Subcommand, ValueEnum};
 
@@ -66,9 +66,15 @@ struct Args {
     /// The path to the final ROM output directory
     output_path: PathBuf,
 
+    #[arg(short = 'l', long)]
+    /// The layout name specified in the MAME .lay file to use. Will fail if this layout is not found
+    layout: Option<String>,
+
     #[arg(short = 'd', long)]
     /// Enable debug PNG output
     debug: bool,
+
+    ///////////////////
 
     // Company filtering
     #[arg(short, long)]
@@ -83,7 +89,7 @@ struct Args {
     /// Filter to Konami games
     konami: bool,
 
-    #[arg(short = 'l', long)]
+    #[arg(short = 's', long)]
     /// Filter to Nelsonic games
     nelsonic: bool,
 
@@ -235,7 +241,7 @@ fn main() {
             continue;
         }
 
-        let layout = match parse_layout(&temp_dir) {
+        let layout = match parse_layout(&temp_dir, args.layout.as_ref()) {
             Ok(layout) => layout,
             Err(err) => {
                 fail(name, err);

@@ -132,7 +132,7 @@ pub struct Screen {
     pub blend: Option<BlendType>,
 }
 
-pub fn parse_layout(temp_dir: &Path) -> Result<View, String> {
+pub fn parse_layout(temp_dir: &Path, specified_layout: Option<&String>) -> Result<View, String> {
     let layout_path = temp_dir.join("default.lay");
     let layout_file = fs::read(layout_path).unwrap();
 
@@ -142,6 +142,14 @@ pub fn parse_layout(temp_dir: &Path) -> Result<View, String> {
 
     for view in output.view {
         map.insert(view.name.to_lowercase(), view);
+    }
+
+    if let Some(specified_layout) = specified_layout {
+        if let Some(view) = map.remove(&specified_layout.trim().to_lowercase()) {
+            return Ok(view);
+        } else {
+            return Err(format!("Could not find view named \"{specified_layout}\""));
+        }
     }
 
     guard!(let Some(view) = select_view(&mut map) else {
