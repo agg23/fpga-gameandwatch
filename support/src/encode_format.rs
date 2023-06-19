@@ -179,14 +179,20 @@ fn build_config(platform: &PlatformSpecification) -> Result<Vec<u8>, String> {
     let b_port = if let Some(b_port) = b_port {
         input_value_for_port(b_port)
     } else {
-        input_value_for_port(unused_action.clone())
+        // B has a pull-up resistor. If not set, default it to high
+        let mut action = unused_action.clone();
+        action.active_low = true;
+        input_value_for_port(action)
     };
     config.push(b_port);
 
     let ba_port = if let Some(ba_port) = ba_port {
         input_value_for_port(ba_port)
     } else {
-        input_value_for_port(unused_action.clone())
+        // BA has a pull-up resistor. If not set, default it to high
+        let mut action = unused_action.clone();
+        action.active_low = true;
+        input_value_for_port(action)
     };
     config.push(ba_port);
 

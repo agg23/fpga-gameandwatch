@@ -190,7 +190,7 @@ module gameandwatch (
       2: out = dpad_left;
       3: out = dpad_right;
 
-      // Buttons
+      // Buttons 1-4
       4: out = button_b;
       5: out = button_a;
       6: out = button_y;
@@ -205,6 +205,18 @@ module gameandwatch (
       // Service1 unhandled
       // Service 2 is Alarm
       16: out = button_trig_r;
+
+      // Left joystick
+      17: out = dpad_up;
+      18: out = dpad_down;
+      19: out = dpad_left;
+      20: out = dpad_right;
+
+      // Right joystick
+      21: out = button_x;
+      22: out = button_b;
+      23: out = button_y;
+      24: out = button_a;
 
       // This input is unused
       7'h7F: out = 0;
