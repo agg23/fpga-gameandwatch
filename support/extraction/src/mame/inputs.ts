@@ -14,6 +14,8 @@ const PORT_START_REGEX = /^\s*PORT_START\("(.*)"\)/;
 const PORT_BIT_REGEX =
   /PORT_BIT\(\s*([0-9A-Fx]+)\s*,\s*(.*?)\s*,\s*(.*?)\s*\).*(?:PORT_NAME\("(.*)"\))?/;
 
+const PORT_CONFSETTING_REGEX = /PORT_CONFSETTING\(\s*([0-9A-Fx]+)\s*,/;
+
 const PORT_INCLUDE_REGEX = /PORT_INCLUDE\(\s*(.*)\s*\)/;
 
 const PORT_MODIFY_REGEX = /PORT_MODIFY\("(.*)"\)/;
@@ -115,6 +117,45 @@ export const parseInputs = (
       } else {
         // All other ports
         currentPort.bit = namedAction;
+      }
+    }
+
+    match = line.match(PORT_CONFSETTING_REGEX);
+    if (match) {
+      // This is a cheat option. We want the default (the first option)
+      const [_, unparsedBit] = match;
+
+      const bit = parseInt(
+        unparsedBit.startsWith("0x") ? unparsedBit.slice(2) : unparsedBit,
+        16
+      );
+
+      const index = indexFromBit(bit);
+
+      if (currentPort) {
+        if (currentPort.type === "s") {
+          if (!currentPort.bitmap[index]) {
+            // No configured value for that port index. This is probably the first (default)
+            const namedAction: NamedAction = {
+              action: "unused",
+              activeLow: false,
+            };
+
+            currentPort.bitmap[index] = namedAction;
+          }
+        } else {
+          // Single bit port
+          if (!currentPort.bit) {
+            // No configured value for that port. This is probably the first (default)
+            const namedAction: NamedAction = {
+              action: "unused",
+              // If bit is 1, the default setting is on/high
+              activeLow: bit === 1,
+            };
+
+            currentPort.bit = namedAction;
+          }
+        }
       }
     }
 
