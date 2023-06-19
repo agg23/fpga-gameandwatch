@@ -19,6 +19,7 @@ pub fn encode(
     pixels_to_mask_id: &[Option<u16>],
     platform: &PlatformSpecification,
     asset_dir: &Path,
+    output_dir: &Path,
 ) -> Result<PathBuf, String> {
     // Build config
     let mut config = build_config(platform)?;
@@ -63,10 +64,19 @@ pub fn encode(
 
     config.append(&mut rom_data);
 
-    let debug_path: PathBuf = asset_dir.join(format!("dump.bin"));
-    fs::write(&debug_path, config).unwrap();
+    let mut game_name = platform.metadata.name.clone();
 
-    Ok(debug_path)
+    if game_name.to_lowercase().starts_with("game & watch:") {
+        game_name = game_name.chars().skip("Game & Watch:".len()).collect();
+    }
+
+    game_name = game_name.replace(":", " -");
+    let game_name = game_name.trim();
+
+    let output_path: PathBuf = output_dir.join(format!("{game_name}.gnw"));
+    fs::write(&output_path, config).unwrap();
+
+    Ok(output_path)
 }
 
 fn build_config(platform: &PlatformSpecification) -> Result<Vec<u8>, String> {

@@ -50,16 +50,21 @@ struct Args {
     #[command(subcommand)]
     filter: Option<FilterArg>,
 
-    #[arg(short = 'o', long)]
+    #[arg(short = 'i', long)]
     /// Only the games located in your MAME directory
-    only_owned: bool,
+    installed: bool,
 
     #[arg(short = 'm', long)]
     /// The path to your MAME directory containing your games
     mame_path: PathBuf,
 
     #[arg(short = 'a', long, default_value = "manifest.json")]
+    /// The path to the included manifest file
     manifest_path: PathBuf,
+
+    #[arg(short = 'o', long)]
+    /// The path to the final ROM output directory
+    output_path: PathBuf,
 
     #[arg(short = 'd', long)]
     /// Enable debug PNG output
@@ -106,6 +111,11 @@ fn main() {
 
     let manifest: HashMap<String, PlatformSpecification> =
         serde_json::from_slice(manifest_file.as_slice()).expect("Could not parse manifest file");
+
+    let output_path = args
+        .output_path
+        .canonicalize()
+        .expect("Could not find output path");
 
     let company_filter = {
         let mut filter = vec![];
@@ -168,8 +178,8 @@ fn main() {
         Some(FilterArg::All) | None => Some(manifest.iter().map(|(n, p)| (n.clone(), p)).collect()),
     };
 
-    let only_owned = if args.filter.is_some() {
-        args.only_owned
+    let installed = if args.filter.is_some() {
+        args.installed
     } else {
         true
     };
@@ -215,7 +225,7 @@ fn main() {
         println!("Processing device {}\n", name.green());
 
         if let Err(err) = get_assets(&name, &args.mame_path, &temp_dir) {
-            if !only_owned {
+            if !installed {
                 // Only fail if we're not looking for only owned games
                 fail(name, err);
             } else {
@@ -251,13 +261,20 @@ fn main() {
             pixels_to_mask_id.as_slice(),
             platform,
             &temp_dir,
+            &output_path,
         );
 
-        println!(
-            "Successfully created device {} at {data_path:?}\n",
-            name.green()
-        );
-        success_count += 1;
+        match data_path {
+            Ok(path) => {
+                println!(
+                    "Successfully created device {} at {}\n",
+                    name.green(),
+                    path.display()
+                );
+                success_count += 1;
+            }
+            Err(err) => fail(name, err),
+        }
     }
 
     println!("-------------------------");
