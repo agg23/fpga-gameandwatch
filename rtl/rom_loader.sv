@@ -45,7 +45,7 @@ module rom_loader (
   localparam MASK_CONFIG_ADDR = 25'h17BB80;
   localparam ROM_DATA_ADDR = 25'h187250;
 
-  wire config_data = ioctl_addr < IMAGE_START_ADDR;
+  // wire config_data = ioctl_addr < IMAGE_START_ADDR;
   assign image_download = ioctl_addr >= IMAGE_START_ADDR && ioctl_addr < MASK_CONFIG_ADDR;
   assign mask_config_download = ioctl_addr >= MASK_CONFIG_ADDR && ioctl_addr < ROM_DATA_ADDR;
   assign rom_download = ioctl_addr >= ROM_DATA_ADDR;
