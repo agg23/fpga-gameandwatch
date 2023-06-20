@@ -1,3 +1,5 @@
+import types::*;
+
 module gameandwatch (
     input wire clk_sys_131_072,
     input wire clk_vid_32_768,
@@ -55,18 +57,7 @@ module gameandwatch (
   ////////////////////////////////////////////////////////////////////////////////////////
   // Loading and config
 
-  wire [31:0] input_s0_config;
-  wire [31:0] input_s1_config;
-  wire [31:0] input_s2_config;
-  wire [31:0] input_s3_config;
-  wire [31:0] input_s4_config;
-  wire [31:0] input_s5_config;
-  wire [31:0] input_s6_config;
-  wire [31:0] input_s7_config;
-
-  wire [7:0] input_b_config;
-  wire [7:0] input_ba_config;
-  wire [7:0] input_acl_config;
+  system_config sys_config;
 
   wire [24:0] base_addr;
   wire image_download;
@@ -78,8 +69,7 @@ module gameandwatch (
   wire [25:0] addr_8bit;
   wire [7:0] data_8bit;
 
-  wire [7:0] mpu;
-  wire [3:0] cpu_id = mpu[3:0];
+  wire [3:0] cpu_id = sys_config.mpu[3:0];
 
   rom_loader rom_loader (
       .clk(clk_sys_131_072),
@@ -88,22 +78,7 @@ module gameandwatch (
       .ioctl_addr(ioctl_addr),
       .ioctl_dout(ioctl_dout),
 
-      // Main config
-      .mpu(mpu),
-
-      // Input config
-      .input_s0_config(input_s0_config),
-      .input_s1_config(input_s1_config),
-      .input_s2_config(input_s2_config),
-      .input_s3_config(input_s3_config),
-      .input_s4_config(input_s4_config),
-      .input_s5_config(input_s5_config),
-      .input_s6_config(input_s6_config),
-      .input_s7_config(input_s7_config),
-
-      .input_b_config  (input_b_config),
-      .input_ba_config (input_ba_config),
-      .input_acl_config(input_acl_config),
+      .sys_config(sys_config),
 
       // Data signals
       .base_addr(base_addr),
@@ -141,105 +116,49 @@ module gameandwatch (
   ////////////////////////////////////////////////////////////////////////////////////////
   // Input
 
-  wire [ 7:0] output_shifter_s;
-  wire [ 3:0] output_r;
+  wire [7:0] output_shifter_s;
+  wire [3:0] output_r;
 
-  // Comb
-  reg  [31:0] active_input_config;
+  wire [3:0] input_k;
 
-  always_comb begin
-    active_input_config = input_s0_config;
-
-    case (cpu_id)
-      4: begin
-        // SM5a
-        if (output_r[1]) active_input_config = input_s0_config;
-        else if (output_r[2]) active_input_config = input_s1_config;
-        else if (output_r[3]) active_input_config = input_s2_config;
-      end
-      default: begin
-        // SM510
-        if (output_shifter_s[0]) active_input_config = input_s0_config;
-        else if (output_shifter_s[1]) active_input_config = input_s1_config;
-        else if (output_shifter_s[2]) active_input_config = input_s2_config;
-        else if (output_shifter_s[3]) active_input_config = input_s3_config;
-        else if (output_shifter_s[4]) active_input_config = input_s4_config;
-        else if (output_shifter_s[5]) active_input_config = input_s5_config;
-        else if (output_shifter_s[6]) active_input_config = input_s6_config;
-        else if (output_shifter_s[7]) active_input_config = input_s7_config;
-      end
-    endcase
-  end
-
-  reg [3:0] input_k = 0;
-
-  reg input_beta = 0;
-  reg input_ba = 0;
+  wire input_beta;
+  wire input_ba;
 
   // TODO: Unused
-  reg input_acl = 0;
+  wire input_acl;
 
-  // Map from config value to control
-  function input_mux([7:0] config_value);
-    reg out;
+  input_config input_config (
+      .clk(clk_sys_131_072),
 
-    // High bit is active low flag
-    case (config_value[6:0])
-      0: out = dpad_up;
-      1: out = dpad_down;
-      2: out = dpad_left;
-      3: out = dpad_right;
+      .sys_config(sys_config),
 
-      // Buttons 1-4
-      4: out = button_b;
-      5: out = button_a;
-      6: out = button_y;
-      7: out = button_x;
+      .cpu_id(cpu_id),
 
-      // Buttons 5-8 unhandled
-      // Select is Time
-      12: out = button_trig_l;
-      13: out = button_select;
-      14: out = button_start;
+      // Input selection
+      .output_shifter_s(output_shifter_s),
+      .output_r(output_r),
 
-      // Service1 unhandled
-      // Service 2 is Alarm
-      16: out = button_trig_r;
+      // Input
+      .button_a(button_a),
+      .button_b(button_b),
+      .button_x(button_x),
+      .button_y(button_y),
+      .button_trig_l(button_trig_l),
+      .button_trig_r(button_trig_r),
+      .button_start(button_start),
+      .button_select(button_select),
+      .dpad_up(dpad_up),
+      .dpad_down(dpad_down),
+      .dpad_left(dpad_left),
+      .dpad_right(dpad_right),
 
-      // Left joystick
-      17: out = dpad_up;
-      18: out = dpad_down;
-      19: out = dpad_left;
-      20: out = dpad_right;
+      // MPU Input
+      .input_k(input_k),
 
-      // Right joystick
-      21: out = button_x;
-      22: out = button_b;
-      23: out = button_y;
-      24: out = button_a;
-
-      // This input is unused
-      7'h7F: out = 0;
-      // Other values unhandled
-
-      default: out = 0;
-    endcase
-
-    return config_value[7] ? ~out : out;
-  endfunction
-
-  always @(posedge clk_sys_131_072) begin
-    input_k <= {
-      input_mux(active_input_config[31:24]),
-      input_mux(active_input_config[23:16]),
-      input_mux(active_input_config[15:8]),
-      input_mux(active_input_config[7:0])
-    };
-
-    input_beta <= input_mux(input_b_config);
-    input_ba <= input_mux(input_ba_config);
-    input_acl <= input_mux(input_acl_config);
-  end
+      .input_beta(input_beta),
+      .input_ba  (input_ba),
+      .input_acl (input_acl)
+  );
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // Device/CPU

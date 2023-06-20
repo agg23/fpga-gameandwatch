@@ -1,3 +1,5 @@
+import types::*;
+
 module rom_loader (
     input wire clk,
 
@@ -6,24 +8,25 @@ module rom_loader (
     input wire [15:0] ioctl_dout,
 
     // Main config
-    output reg  [ 7:0] mpu,
-    output reg  [ 7:0] screen_config,
-    output wire [11:0] screen_width,
-    output wire [11:0] screen_height,
+    // output reg  [ 7:0] mpu,
+    // output reg  [ 7:0] screen_config,
+    // output wire [11:0] screen_width,
+    // output wire [11:0] screen_height,
 
-    // Input config
-    output reg [31:0] input_s0_config,
-    output reg [31:0] input_s1_config,
-    output reg [31:0] input_s2_config,
-    output reg [31:0] input_s3_config,
-    output reg [31:0] input_s4_config,
-    output reg [31:0] input_s5_config,
-    output reg [31:0] input_s6_config,
-    output reg [31:0] input_s7_config,
+    // // Input config
+    // output reg [31:0] input_s0_config,
+    // output reg [31:0] input_s1_config,
+    // output reg [31:0] input_s2_config,
+    // output reg [31:0] input_s3_config,
+    // output reg [31:0] input_s4_config,
+    // output reg [31:0] input_s5_config,
+    // output reg [31:0] input_s6_config,
+    // output reg [31:0] input_s7_config,
 
-    output reg [7:0] input_b_config,
-    output reg [7:0] input_ba_config,
-    output reg [7:0] input_acl_config,
+    // output reg [7:0] input_b_config,
+    // output reg [7:0] input_ba_config,
+    // output reg [7:0] input_acl_config,
+    output system_config sys_config,
 
     // Data signals
     // Comb
@@ -60,7 +63,7 @@ module rom_loader (
   end
 
   reg [23:0] screen_size = 0;
-  assign {screen_height, screen_width} = screen_size;
+  // assign {screen_height, screen_width} = screen_size;
 
   reg [15:0] buffer = 0;
   reg [ 1:0] read_count = 0;
@@ -110,11 +113,11 @@ module rom_loader (
         end
         MPU: begin
           state <= SCREEN_CONFIG;
-          mpu   <= data_8bit;
+          sys_config.mpu <= data_8bit;
         end
         SCREEN_CONFIG: begin
           state <= SCREEN_SIZE;
-          screen_config <= data_8bit;
+          sys_config.screen_config <= data_8bit;
         end
         SCREEN_SIZE: begin
           byte_count  <= byte_count + 6'h1;
@@ -122,6 +125,7 @@ module rom_loader (
 
           if (byte_count == 4'h2) begin
             state <= SCREEN_RESERVED;
+            {sys_config.screen_height, sys_config.screen_width} <= {data_8bit, screen_size[23:8]};
             byte_count <= 0;
           end
         end
@@ -139,37 +143,37 @@ module rom_loader (
 
           if (byte_count >= 0 && byte_count < 4) begin
             // S0
-            input_s0_config <= {data_8bit, input_s0_config[31:8]};
+            sys_config.input_s0_config <= {data_8bit, sys_config.input_s0_config[31:8]};
           end else if (byte_count >= 4 && byte_count < 8) begin
             // S1
-            input_s1_config <= {data_8bit, input_s1_config[31:8]};
+            sys_config.input_s1_config <= {data_8bit, sys_config.input_s1_config[31:8]};
           end else if (byte_count >= 8 && byte_count < 12) begin
             // S2
-            input_s2_config <= {data_8bit, input_s2_config[31:8]};
+            sys_config.input_s2_config <= {data_8bit, sys_config.input_s2_config[31:8]};
           end else if (byte_count >= 12 && byte_count < 16) begin
             // S3
-            input_s3_config <= {data_8bit, input_s3_config[31:8]};
+            sys_config.input_s3_config <= {data_8bit, sys_config.input_s3_config[31:8]};
           end else if (byte_count >= 16 && byte_count < 20) begin
             // S4
-            input_s4_config <= {data_8bit, input_s4_config[31:8]};
+            sys_config.input_s4_config <= {data_8bit, sys_config.input_s4_config[31:8]};
           end else if (byte_count >= 20 && byte_count < 24) begin
             // S5
-            input_s5_config <= {data_8bit, input_s5_config[31:8]};
+            sys_config.input_s5_config <= {data_8bit, sys_config.input_s5_config[31:8]};
           end else if (byte_count >= 24 && byte_count < 28) begin
             // S6
-            input_s6_config <= {data_8bit, input_s6_config[31:8]};
+            sys_config.input_s6_config <= {data_8bit, sys_config.input_s6_config[31:8]};
           end else if (byte_count >= 28 && byte_count < 32) begin
             // S7
-            input_s7_config <= {data_8bit, input_s7_config[31:8]};
+            sys_config.input_s7_config <= {data_8bit, sys_config.input_s7_config[31:8]};
           end else if (byte_count == 32) begin
             // B
-            input_b_config <= data_8bit;
+            sys_config.input_b_config <= data_8bit;
           end else if (byte_count == 33) begin
             // BA
-            input_ba_config <= data_8bit;
+            sys_config.input_ba_config <= data_8bit;
           end else if (byte_count == 34) begin
             // ACL
-            input_acl_config <= data_8bit;
+            sys_config.input_acl_config <= data_8bit;
           end
 
           // Extra gap for reserved bytes

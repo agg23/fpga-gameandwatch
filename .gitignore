@@ -5,6 +5,7 @@ rtl/test/verilator/assets/
 rtl/test/verilator/target/
 support/assets/
 support/target/
+ROMs
 
 # Quartus directories and files
 db
