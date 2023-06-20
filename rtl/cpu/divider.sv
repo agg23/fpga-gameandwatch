@@ -42,8 +42,8 @@ module divider (
 
       if (reset_divider) begin
         // TODO: Remove. This is to match MAME testing
-        divider <= 2;
-        // divider <= 0;
+        // divider <= 2;
+        divider <= 0;
       end else if (reset_divider_keep_6) begin
         reg [14:0] inc_divider;
         // Increment divider as if we were incrementing normally

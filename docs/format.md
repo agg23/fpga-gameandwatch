@@ -5,7 +5,8 @@ At dest 131.072MHz, we take 18 * 7.63ns = 140ns per 16 bytes, or 8.75ns per byte
 Our video clock is 32.768MHz. We need a full pixel (3 bytes) every clock (30.5ns, so 10ns per byte)
 
 ```
-line 10: [id 10bit][x 10bit][y 10bit][length 10bit]...next
+40 bits: [id 10bit][x 10bit][y 10bit][length 10bit]...next
+0x16DA0 bytes total
 ```
 
 ## Config
@@ -21,6 +22,8 @@ First bit is version. Spec V1 is as follows:
 0x2F7700: [mask config 0x16DA0 bytes] End of images, start of mask config
 0x30E4A0: ROM data
 ```
+
+0000_1101_11 -> 00_0011_0111
 
 ### MPU
 

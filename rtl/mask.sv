@@ -116,17 +116,9 @@ module mask #(
     end else if (vid_counter == 0) begin
       segment_id <= next_segment_id;
 
-      if (in_segment) begin
-        // Existing segment
-        length <= length - 10'h1;
-
-        in_segment <= length > 10'h0;
-
-        if (length == 10'h1) begin
-          read_addr <= read_addr + 15'h1;
-        end
-      end else if (video_x == segment_start_x && video_y == segment_y) begin
+      if (video_x == segment_start_x && video_y == segment_y) begin
         // Beginning of segment
+        // This takes priority over existing segment, as the segments may come one right after another
         in_segment <= 1;
         // TODO: Change to actual segment status by using ID
         has_segment <= 1;
@@ -134,6 +126,15 @@ module mask #(
         length <= segment_length - 10'h1;
 
         if (segment_length == 10'h1) begin
+          read_addr <= read_addr + 15'h1;
+        end
+      end else if (in_segment) begin
+        // Existing segment
+        length <= length - 10'h1;
+
+        in_segment <= length > 10'h0;
+
+        if (length == 10'h1) begin
           read_addr <= read_addr + 15'h1;
         end
       end else begin

@@ -298,14 +298,33 @@ fn build_mask_map(pixels_to_mask_id: &[Option<u16>]) -> Result<Vec<u8>, String> 
         for x in 0..WIDTH {
             if let Some(id) = pixels_to_mask_id[y * WIDTH + x] {
                 // Has id
-                if current_id.is_none() {
-                    // Begin entry
-                    current_id = Some(id);
-                    start_x = x;
-                    length = 1;
-                } else {
-                    // Increment current entry
-                    length += 1;
+                match current_id {
+                    Some(stored_id) => {
+                        if stored_id == id {
+                            // Increment current entry
+                            length += 1;
+                        } else {
+                            // This is a new segment, finish the old segment and start a new one
+                            insert_mask_entry_bytes(
+                                &mut output,
+                                &mut byte_index,
+                                stored_id,
+                                length,
+                                start_x,
+                                y,
+                            )?;
+
+                            current_id = Some(id);
+                            start_x = x;
+                            length = 1;
+                        }
+                    }
+                    None => {
+                        // Begin entry
+                        current_id = Some(id);
+                        start_x = x;
+                        length = 1;
+                    }
                 }
             } else {
                 // No id
