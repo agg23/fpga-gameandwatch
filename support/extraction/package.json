@@ -12,5 +12,8 @@
     "@types/node": "^18.15.5",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "bitset": "^5.1.1"
   }
 }
