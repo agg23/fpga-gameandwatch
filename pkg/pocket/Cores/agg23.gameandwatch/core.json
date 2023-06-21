@@ -4,11 +4,11 @@
     "metadata": {
       "platform_ids": ["gameandwatch"],
       "shortname": "gameandwatch",
-      "description": "Nintendo's first video games",
+      "description": "Nintendo's first handheld video games",
       "author": "agg23",
       "url": "https://github.com/agg23/fpga-gameandwatch",
-      "version": "1.0.0",
-      "date_release": "2023-05-17"
+      "version": "0.1.0-beta1",
+      "date_release": "2023-06-21"
     },
     "framework": {
       "target_product": "Analogue Pocket",
