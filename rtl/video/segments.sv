@@ -1,4 +1,8 @@
-module segments (
+module segments #(
+    parameter MAX_X_SEGMENT = 9,
+    parameter MAX_Y_SEGMENT = 16,
+    parameter MAX_Z_SEGMENT = 4
+) (
     input wire clk,
 
     input wire [3:0] cpu_id,
@@ -6,13 +10,7 @@ module segments (
     input wire mask_data_wr,
     input wire [15:0] mask_data,
 
-    // Segments
-    input wire [15:0] cache_segment_a [4],
-    input wire [15:0] cache_segment_b [4],
-    input wire [ 1:0] cache_segment_bs,
-
-    input wire [3:0] cache_w_prime[9],
-    input wire [3:0] cache_w_main [9],
+    input wire [MAX_Z_SEGMENT-1:0] segments[MAX_X_SEGMENT][MAX_Y_SEGMENT],
 
     // Video counters
     input wire vblank_int,
@@ -53,29 +51,7 @@ module segments (
     segment_en = 0;
 
     if (has_segment) begin
-      case (cpu_id)
-        4: begin
-          // SM5a
-          if (segment_row == 2'h1) begin
-            // W'
-            segment_en = cache_w_prime[segment_line_select][segment_column];
-          end else begin
-            // W
-            segment_en = cache_w_main[segment_line_select][segment_column];
-          end
-        end
-        default: begin
-          // SM510
-          case (segment_line_select)
-            4'h0: segment_en = cache_segment_a[segment_row][segment_column];
-            4'h1: segment_en = cache_segment_b[segment_row][segment_column];
-            4'h2: segment_en = cache_segment_bs[segment_row];
-            default: begin
-              // TODO: What happens in these cases?
-            end
-          endcase
-        end
-      endcase
+      segment_en = segments[segment_line_select][segment_column][segment_row];
     end
   end
 endmodule

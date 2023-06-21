@@ -26,34 +26,48 @@ module lcd (
 
     output wire segment_en
 );
-  // Segments, over all H's, as last seen
-  reg [15:0] segment_a[4];
-  reg [15:0] segment_b[4];
-  reg [1:0] segment_bs;
-
-  reg [15:0] cache_segment_a[4];
-  reg [15:0] cache_segment_b[4];
-  reg [1:0] cache_segment_bs;
-
-  reg [3:0] w_prime[9];
-  reg [3:0] w_main[9];
-
-  reg [3:0] cache_w_prime[9];
-  reg [3:0] cache_w_main[9];
-
-  reg [4:0] decay_w_prime[9][4];
-  reg [4:0] decay_w_main[9][4];
-
-  reg prev_divider_1khz = 0;
-
-  // Comb
-  reg [1:0] current_h_index;
-  reg prev_vblank = 0;
-
   localparam DECAY_MAX = 5'h1F;
   localparam DECAY_MIN_DISPLAY = 5'h10;
 
-  segments segments (
+  localparam MAX_X_SEGMENT = 9;
+  localparam MAX_Y_SEGMENT = 16;
+  localparam MAX_Z_SEGMENT = 4;
+
+  wire [MAX_Z_SEGMENT-1:0] raw_segments[MAX_X_SEGMENT][MAX_Y_SEGMENT];
+  reg [MAX_Z_SEGMENT-1:0] decayed_segments[MAX_X_SEGMENT][MAX_Y_SEGMENT];
+  reg [MAX_Z_SEGMENT-1:0] vsync_segments[MAX_X_SEGMENT][MAX_Y_SEGMENT];
+
+  reg [4:0] segment_current_decays[MAX_X_SEGMENT][MAX_Y_SEGMENT][MAX_Z_SEGMENT-1:0];
+
+  reg prev_divider_1khz = 0;
+  reg prev_vblank = 0;
+
+  normalize #(
+      .MAX_X_SEGMENT(MAX_X_SEGMENT),
+      .MAX_Y_SEGMENT(MAX_Y_SEGMENT),
+      .MAX_Z_SEGMENT(MAX_Z_SEGMENT)
+  ) normalize (
+      .clk(clk),
+
+      .cpu_id(cpu_id),
+
+      .current_segment_a (current_segment_a),
+      .current_segment_b (current_segment_b),
+      .current_segment_bs(current_segment_bs),
+
+      .current_w_prime(current_w_prime),
+      .current_w_main (current_w_main),
+
+      .output_lcd_h_index(output_lcd_h_index),
+
+      .segments(raw_segments)
+  );
+
+  segments #(
+      .MAX_X_SEGMENT(MAX_X_SEGMENT),
+      .MAX_Y_SEGMENT(MAX_Y_SEGMENT),
+      .MAX_Z_SEGMENT(MAX_Z_SEGMENT)
+  ) lcd_segments (
       .clk(clk),
 
       .cpu_id(cpu_id),
@@ -61,13 +75,7 @@ module lcd (
       .mask_data_wr(mask_data_wr),
       .mask_data(mask_data),
 
-      // Segments
-      .cache_segment_a (cache_segment_a),
-      .cache_segment_b (cache_segment_b),
-      .cache_segment_bs(cache_segment_bs),
-
-      .cache_w_prime(cache_w_prime),
-      .cache_w_main (cache_w_main),
+      .segments(vsync_segments),
 
       .vblank_int(vblank_int),
       .hblank_int(hblank_int),
@@ -78,67 +86,39 @@ module lcd (
   );
 
   always @(posedge clk) begin
-    int i;
-    int j;
+    int x, y, z;
 
     prev_vblank <= vblank_int;
     prev_divider_1khz <= divider_1khz;
 
-    // TODO: This is very similar to the logic already in `ram.sv`
-    segment_a[output_lcd_h_index] <= current_segment_a;
-    segment_b[output_lcd_h_index] <= current_segment_b;
-    segment_bs[output_lcd_h_index] <= current_segment_bs;
-
-    if (output_lcd_h_index[0]) begin
-      // W'
-      w_prime <= current_w_prime;
-    end else begin
-      // W
-      w_main <= current_w_main;
-    end
-
+    // Pass raw segments through deflicker stage
     if (divider_1khz && ~prev_divider_1khz) begin
-      for (i = 0; i < 9; i += 1) begin
-        for (j = 0; j < 4; j += 1) begin
-          // W'
-          // Modify decay
-          if (w_prime[i][j] && decay_w_prime[i][j] < DECAY_MAX) begin
-            // Segment is on, and decay isn't max
-            // Increment decay
-            decay_w_prime[i][j] <= decay_w_prime[i][j] + 5'h1;
-          end else if (~w_prime[i][j] && decay_w_prime[i][j] > 5'h0) begin
-            // Segment is off, and decay isn't min
-            // Decrement decay
-            decay_w_prime[i][j] <= decay_w_prime[i][j] - 5'h1;
+      for (x = 0; x < MAX_X_SEGMENT; x += 1) begin
+        for (y = 0; y < MAX_Y_SEGMENT; y += 1) begin
+          for (z = 0; z < MAX_Z_SEGMENT; z += 1) begin
+            reg [4:0] current_decay;
+            current_decay = segment_current_decays[x][y][z];
+
+            if (raw_segments[x][y][z] && current_decay < DECAY_MAX) begin
+              // Segment is on, and decay isn't max
+              // Increment decay
+              segment_current_decays[x][y][z] <= current_decay + 5'h1;
+            end else if (~raw_segments[x][y][z] && current_decay > 5'h0) begin
+              // Segment is off, and decay isn't min
+              // Decrement decay
+              segment_current_decays[x][y][z] <= current_decay - 5'h1;
+            end
+
+            // Update segment array (an iteration delayed)
+            decayed_segments[x][y][z] <= current_decay > DECAY_MIN_DISPLAY;
           end
-
-          // Update segment array (an iteration delayed)
-          cache_w_prime[i][j] <= decay_w_prime[i][j] > DECAY_MIN_DISPLAY;
-
-          // W
-          if (w_main[i][j] && decay_w_main[i][j] < DECAY_MAX) begin
-            decay_w_main[i][j] <= decay_w_main[i][j] + 5'h1;
-          end else if (~w_main[i][j] && decay_w_main[i][j] > 5'h0) begin
-            decay_w_main[i][j] <= decay_w_main[i][j] - 5'h1;
-          end
-
-          cache_w_main[i][j] <= decay_w_main[i][j] > DECAY_MIN_DISPLAY;
         end
       end
     end
 
+    // Pass deflickered segment through vblank buffer stage
     if (vblank_int && ~prev_vblank) begin
-      cache_segment_a[0] <= segment_a[0];
-      cache_segment_a[1] <= segment_a[1];
-      cache_segment_a[2] <= segment_a[2];
-      cache_segment_a[3] <= segment_a[3];
-
-      cache_segment_b[0] <= segment_b[0];
-      cache_segment_b[1] <= segment_b[1];
-      cache_segment_b[2] <= segment_b[2];
-      cache_segment_b[3] <= segment_b[3];
-
-      cache_segment_bs   <= segment_bs;
+      vsync_segments <= decayed_segments;
     end
   end
 endmodule
