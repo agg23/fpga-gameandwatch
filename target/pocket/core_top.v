@@ -595,14 +595,11 @@ module core_top (
       .ioctl_wr(ioctl_wr),
       // Convert to word addresses
       .ioctl_addr(ioctl_addr[25:1]),
-      //   .ioctl_dout({ioctl_dout[7:0], ioctl_dout[15:8]}),
       .ioctl_dout(ioctl_dout),
 
       // Video
       .hsync(hsync),
       .vsync(vsync),
-      //   .hblank(h_blank),
-      //   .vblank(v_blank),
 
       .de (de),
       .rgb(rgb),

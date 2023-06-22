@@ -12,7 +12,9 @@
     "scripts": {
         "verilator": "echo \"Error: no simulation specified\" && exit 1",
         "build:pocket": "quartus_sh --flow compile projects/gameandwatch_pocket.qpf",
-        "program:pocket": "quartus_pgm -m jtag -c 1 -o \"p;projects/output_files/gameandwatch_pocket.sof@1\""
+        "program:pocket": "quartus_pgm -m jtag -c 1 -o \"p;projects/output_files/gameandwatch_pocket.sof@1\"",
+        "build:de10_nano": "quartus_sh --flow compile projects/gameandwatch_de10_nano.qpf",
+        "program:de10_nano": "quartus_pgm -m jtag -c 1 -o \"p;projects/output_files/gameandwatch_de10_nano.sof@1\""
     },
     "hardware": {
         "id": "sm510",
@@ -21,7 +23,8 @@
         "manufacturer": "Sharp"
     },
     "platforms": {
-        "pocket": "1.3.0"
+        "pocket": "1.3.0",
+        "mimic": "0.9.0"
     },
     "modules": {}
 }
