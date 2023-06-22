@@ -29,6 +29,8 @@ enum FilterArg {
     Specific { name: String },
     /// Match the games that use a particular CPU
     CPU { name: CPUType },
+    /// Match the specific CPU types supported by the core currently. These are the SM510 and SM5a CPUs
+    Supported,
     /// All game types specified in the manifest.json
     All,
 }
@@ -89,7 +91,7 @@ struct Args {
     /// Filter to Konami games
     konami: bool,
 
-    #[arg(short = 's', long)]
+    #[arg(short = 'c', long)]
     /// Filter to Nelsonic games
     nelsonic: bool,
 
@@ -158,6 +160,21 @@ fn main() {
         filter
     };
 
+    let filter_platforms =
+        |platforms: Vec<CPUType>| -> Option<Vec<(String, &PlatformSpecification)>> {
+            let result = manifest
+                .iter()
+                .filter(|(_, p)| platforms.contains(&p.device.cpu))
+                .map(|(n, p)| (n.clone(), p))
+                .collect::<Vec<(String, &PlatformSpecification)>>();
+
+            if result.len() > 0 {
+                Some(result)
+            } else {
+                None
+            }
+        };
+
     let platforms: Option<Vec<(String, &PlatformSpecification)>> = match &args.filter {
         Some(FilterArg::Specific { name }) => {
             let trimmed_name = name.trim().to_string();
@@ -168,19 +185,8 @@ fn main() {
                 None
             }
         }
-        Some(FilterArg::CPU { name }) => {
-            let result = manifest
-                .iter()
-                .filter(|(_, p)| p.device.cpu == *name)
-                .map(|(n, p)| (n.clone(), p))
-                .collect::<Vec<(String, &PlatformSpecification)>>();
-
-            if result.len() > 0 {
-                Some(result)
-            } else {
-                None
-            }
-        }
+        Some(FilterArg::Supported) => filter_platforms(vec![CPUType::SM510, CPUType::SM5a]),
+        Some(FilterArg::CPU { name }) => filter_platforms(vec![name.clone()]),
         Some(FilterArg::All) | None => Some(manifest.iter().map(|(n, p)| (n.clone(), p)).collect()),
     };
 
