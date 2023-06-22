@@ -19,7 +19,7 @@ module rgb_controller (
     input wire [15:0] sd_out,
     output reg sd_rd = 0,
     output reg sd_end_burst = 0,
-    output wire [24:0] sd_rd_addr
+    output reg [24:0] sd_rd_addr
 );
 
   wire fifo_clear = hblank_int && ~prev_hblank;
@@ -57,6 +57,7 @@ module rgb_controller (
 
   reg prev_sd_data_available;
   reg prev_hblank = 0;
+  reg prev_hblank2 = 0;
 
   reg [23:0] background_buffer = 0;
   reg [23:0] mask_buffer = 0;
@@ -75,6 +76,7 @@ module rgb_controller (
 
       prev_sd_data_available <= sd_data_available;
       prev_hblank <= hblank_int;
+      prev_hblank2 <= prev_hblank;
 
       new_buffer_count = buffer_count;
 
@@ -109,15 +111,16 @@ module rgb_controller (
         end
       end
 
+      // Delay hblank trigger by one cycle so that sd_rd_addr can be set properly
       if (hblank_int && ~prev_hblank) begin
+        sd_read_count <= 0;
+      end else if (prev_hblank && ~prev_hblank2) begin
         sd_rd <= 1;
 
         // For easy debugging
         background_buffer <= 0;
         mask_buffer <= 0;
         buffer_count <= 0;
-
-        sd_read_count <= 0;
       end
     end
   end
@@ -125,8 +128,14 @@ module rgb_controller (
   // Address of the next line of the image
   // Address calculates the number of bytes (not words) so we have full precision
   // Essentually multiply by two, then divide by to for interleaved data, then byte addressing
-  wire [ 9:0] read_y = video_y >= 10'd720 ? 10'b0 : hblank_int ? video_y + 10'h1 : video_y;
-  wire [25:0] read_byte_addr = {16'b0, read_y} * 26'd720 * 26'h3 * 26'h2;
-  assign sd_rd_addr = read_byte_addr[25:1] + {9'b0, sd_read_count};
+  always @(posedge clk_sys_131_072) begin
+    reg [ 9:0] read_y;
+    reg [25:0] read_byte_addr;
+
+    read_y = video_y >= 10'd720 ? 10'b0 : hblank_int ? video_y + 10'h1 : video_y;
+    read_byte_addr = {16'b0, read_y} * 26'd720 * 26'h3 * 26'h2;
+
+    sd_rd_addr <= read_byte_addr[25:1] + {9'b0, sd_read_count};
+  end
 
 endmodule
