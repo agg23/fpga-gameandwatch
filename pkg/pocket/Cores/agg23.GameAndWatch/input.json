@@ -7,33 +7,33 @@
         "mappings": [
           {
             "id": 0,
-            "name": "Btn 1/Right Joy Down",
+            "name": "Btn 1/R Joy Down",
             "key": "pad_btn_b"
           },
           {
             "id": 1,
-            "name": "Btn 2/Right Joy Right",
+            "name": "Btn 2/R Joy Right",
             "key": "pad_btn_a"
           },
           {
             "id": 2,
-            "name": "Btn 3/Right Joy Left",
+            "name": "Btn 3/R Joy Left",
             "key": "pad_btn_y"
           },
           {
             "id": 3,
-            "name": "Btn 3/Right Joy Up",
+            "name": "Btn 3/R Joy Up",
             "key": "pad_btn_x"
           },
           {
             "id": 10,
             "name": "Time",
-            "key": "pad_trigger_l"
+            "key": "pad_trig_l"
           },
           {
             "id": 11,
             "name": "Alarm",
-            "key": "pad_trigger_r"
+            "key": "pad_trig_r"
           },
           {
             "id": 20,

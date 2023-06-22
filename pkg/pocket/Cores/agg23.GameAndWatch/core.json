@@ -3,7 +3,7 @@
     "magic": "APF_VER_1",
     "metadata": {
       "platform_ids": ["gameandwatch"],
-      "shortname": "gameandwatch",
+      "shortname": "GameAndWatch",
       "description": "Nintendo's first handheld video games",
       "author": "agg23",
       "url": "https://github.com/agg23/fpga-gameandwatch",

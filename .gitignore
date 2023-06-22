@@ -7,6 +7,7 @@ support/assets/
 support/target/
 ROMs
 *.rev
+*.zip
 
 # Quartus directories and files
 db
