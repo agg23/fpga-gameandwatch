@@ -1,4 +1,6 @@
-module video (
+module video #(
+    parameter CLOCK_RATIO = 3
+) (
     input wire clk_sys_131_072,
     input wire clk_vid_32_768,
 
@@ -53,7 +55,9 @@ module video (
 
   wire segment_en;
 
-  lcd lcd (
+  lcd #(
+      .CLOCK_RATIO(CLOCK_RATIO)
+  ) lcd (
       .clk(clk_sys_131_072),
 
       .cpu_id(cpu_id),
@@ -88,7 +92,7 @@ module video (
   wire [23:0] background_rgb;
   wire [23:0] mask_rgb;
 
-  assign rgb = segment_en ? mask_rgb : background_rgb;
+  assign rgb = reset ? 24'h0 : segment_en ? mask_rgb : background_rgb;
 
   rgb_controller rgb_controller (
       .clk_sys_131_072(clk_sys_131_072),

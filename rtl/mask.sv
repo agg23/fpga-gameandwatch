@@ -1,5 +1,5 @@
 module mask #(
-    parameter CLOCK_RATIO = 4
+    parameter CLOCK_RATIO = 3
 ) (
     input wire clk,
 
@@ -92,7 +92,7 @@ module mask #(
   // Mask pixel selection
 
   localparam CLOCK_RATIO_START_VALUE = CLOCK_RATIO - 1;
-  localparam VID_COUNTER_DEPTH = $clog2(CLOCK_RATIO_START_VALUE);
+  localparam VID_COUNTER_DEPTH = $clog2(CLOCK_RATIO_START_VALUE + 1);
 
   // Currently in segment
   reg in_segment = 0;

@@ -1,4 +1,6 @@
 module segments #(
+    parameter CLOCK_RATIO = 3,
+
     parameter MAX_X_SEGMENT = 9,
     parameter MAX_Y_SEGMENT = 16,
     parameter MAX_Z_SEGMENT = 4
@@ -32,7 +34,9 @@ module segments #(
 
   wire has_segment;
 
-  mask mask (
+  mask #(
+      .CLOCK_RATIO(CLOCK_RATIO)
+  ) mask (
       .clk(clk),
 
       .ioctl_wr  (mask_data_wr),

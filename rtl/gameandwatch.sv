@@ -62,7 +62,6 @@ module gameandwatch (
   wire [24:0] base_addr;
   wire image_download;
   wire mask_config_download;
-  // TODO: Use
   wire rom_download;
 
   wire wr_8bit;
@@ -163,7 +162,8 @@ module gameandwatch (
   ////////////////////////////////////////////////////////////////////////////////////////
   // Device/CPU
 
-  localparam DIVIDER_RESET_VALUE = 12'hFA0 - 12'h1;
+  // 1020 (the multiplier from 32.768kHz to vid clock) * 3
+  localparam DIVIDER_RESET_VALUE = 12'hBF4 - 12'h1;
   reg [11:0] clock_divider = DIVIDER_RESET_VALUE;
 
   wire clk_en = clock_divider == 0;
@@ -235,11 +235,13 @@ module gameandwatch (
   wire        sd_rd;
   wire [24:0] sd_rd_addr;
 
-  video video (
+  video #(
+      .CLOCK_RATIO(3)
+  ) video (
       .clk_sys_131_072(clk_sys_131_072),
       .clk_vid_32_768 (clk_vid_32_768),
 
-      .reset(reset),
+      .reset(reset || ioctl_download),
 
       .cpu_id(cpu_id),
 
@@ -281,8 +283,8 @@ module gameandwatch (
   wire sdram_wr = ioctl_wr && image_download;
 
   sdram_burst #(
-      .CLOCK_SPEED_MHZ(131.072),
-      .CAS_LATENCY(3)
+      .CLOCK_SPEED_MHZ(99.28704),
+      .CAS_LATENCY(2)
   ) sdram (
       .clk  (clk_sys_131_072),
       .reset(~pll_core_locked),

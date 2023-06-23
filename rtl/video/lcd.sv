@@ -1,4 +1,6 @@
-module lcd (
+module lcd #(
+    parameter CLOCK_RATIO = 3
+) (
     input wire clk,
 
     input wire [3:0] cpu_id,
@@ -64,6 +66,7 @@ module lcd (
   );
 
   segments #(
+      .CLOCK_RATIO  (CLOCK_RATIO),
       .MAX_X_SEGMENT(MAX_X_SEGMENT),
       .MAX_Y_SEGMENT(MAX_Y_SEGMENT),
       .MAX_Z_SEGMENT(MAX_Z_SEGMENT)

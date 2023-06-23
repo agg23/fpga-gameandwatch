@@ -14,8 +14,8 @@ module counts (
   localparam WIDTH = 10'd720;
   localparam HEIGHT = 10'd720;
 
-  localparam VBLANK_LEN = 10'd19;
-  localparam HBLANK_LEN = 10'd19;
+  localparam VBLANK_LEN = 10'd10;
+  localparam HBLANK_LEN = 10'd36;
 
   localparam VBLANK_OFFSET = 10'd5;
   localparam HBLANK_OFFSET = 10'd5;

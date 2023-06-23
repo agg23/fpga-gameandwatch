@@ -321,13 +321,26 @@ module core_top (
   ////////////////////////////////////////////////////////////////////////////////////////
   // Core
 
+  reg has_rom = 0;
+
+  reg prev_ioctl_download = 0;
+
+  // Hold core in reset (to blank video) when there is no ROM
+  always @(posedge clk_sys_131_072) begin
+    prev_ioctl_download <= ioctl_download;
+
+    if (~ioctl_download && prev_ioctl_download) begin
+      has_rom <= 1;
+    end
+  end
+
   wire sound;
 
   gameandwatch gameandwatch (
       .clk_sys_131_072(clk_sys_131_072),
       .clk_vid_32_768 (clk_vid_32_768),
 
-      .reset(RESET || external_reset || buttons[1]),
+      .reset(RESET || ~has_rom || external_reset || buttons[1]),
       .pll_core_locked(pll_core_locked),
 
       // Input
@@ -348,7 +361,7 @@ module core_top (
       .ioctl_download(ioctl_download),
       .ioctl_wr(ioctl_wr),
       // Convert to word addresses
-      .ioctl_addr(ioctl_addr),
+      .ioctl_addr({1'b0, ioctl_addr[24:1]}),
       .ioctl_dout(ioctl_dout),
 
       // Video
