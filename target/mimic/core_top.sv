@@ -213,31 +213,15 @@ module core_top (
     "Game and Watch;;",
     "FS0,gnw,Load ROM;",
     "-;",
-    "O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-    "O[2],TV Mode,NTSC,PAL;",
-    "O[5:3],Pattern,EBU,Grid,Checkerboard,Red,Green,Blue,White Border,Off Air TV;",
-    "-;",
-    "P1,Test Page 1;",
-    "P1-;",
-    "P1-, -= Options in page 1 =-;",
-    "P1-;",
-    "P1O[5],Option 1-1,Off,On;",
-    "d0P1F1,BIN;",
-    "H0P1O[10],Option 1-2,Off,On;",
-    "-;",
-    "P2,Test Page 2;",
-    "P2-;",
-    "P2-, -= Options in page 2 =-;",
-    "P2-;",
-    "P2S0,DSK;",
-    "P2O[7:6],Option 2,1,2,3,4;",
+    "O[1],Accurate LCD Timing,Off,On;",
     "-;",
     "-;",
-    "T[0],Reset;",
+    // Close OSD after reset
+    "R[0],Reset;",
 
-    // TODO:
-    "J1,Right Button (Cancel),Bottom Button (Execute),Left Button (Input),Decrease Turbo,Increase Turbo,Savestates;",
-    "jn,A,B,X,Y,L,R,Select,Start;",
+    "J1,Btn 1/R Joy Down,Btn 2/R Joy Right,Btn 3/R Joy Left,Btn 4/R Joy Up,Time,Alarm,Game A,Game B;",
+    // As much as I hate this, buttons are flipped due to wanting J1 to be in the correct order when reconfiguring inputs
+    "jn,B,A,Y,X,L,R,Select,Start;",
 
     "v,0;", // Config version should be used to reset options to default values on first start if CONF_STR has changed in an incompatible way [Values: 0-99].
     "V,v",
@@ -264,11 +248,7 @@ module core_top (
   // HPS (Hard Processor System)
 
   wire [127:0] status;
-  wire         forced_scandoubler;
   wire [  1:0] buttons;
-
-  wire [ 21:0] gamma_bus;
-  wire         direct_video;
 
   // HPS <=> FPGA - Downloads/Upload
   wire         ioctl_download;
@@ -292,12 +272,8 @@ module core_top (
       .clk_sys(clk_sys_131_072),
       .HPS_BUS(HPS_BUS),
 
-      .buttons           (buttons),
-      .status            (status),
-      .status_menumask   ({status[5]}),
-      .forced_scandoubler(forced_scandoubler),
-      .gamma_bus         (gamma_bus),
-      .direct_video      (direct_video),
+      .buttons(buttons),
+      .status (status),
 
       .ioctl_upload    (ioctl_upload),
       .ioctl_upload_req(ioctl_upload_req),
@@ -315,8 +291,8 @@ module core_top (
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // Settings
-  wire external_reset = 0;
-  wire accurate_lcd_timing = 0;
+  wire external_reset = status[0];
+  wire accurate_lcd_timing = status[1];
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // Core
@@ -344,10 +320,10 @@ module core_top (
       .pll_core_locked(pll_core_locked),
 
       // Input
-      .button_a(joystick_0[4]),
-      .button_b(joystick_0[5]),
-      .button_x(joystick_0[6]),
-      .button_y(joystick_0[7]),
+      .button_a(joystick_0[5]),
+      .button_b(joystick_0[4]),
+      .button_x(joystick_0[7]),
+      .button_y(joystick_0[6]),
       .button_trig_l(joystick_0[8]),
       .button_trig_r(joystick_0[9]),
       .button_start(joystick_0[11]),
