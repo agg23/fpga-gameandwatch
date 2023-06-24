@@ -73,7 +73,8 @@ module gameandwatch (
   rom_loader rom_loader (
       .clk(clk_sys_131_072),
 
-      .ioctl_wr  (ioctl_wr),
+      .ioctl_download(ioctl_download),
+      .ioctl_wr(ioctl_wr),
       .ioctl_addr(ioctl_addr),
       .ioctl_dout(ioctl_dout),
 

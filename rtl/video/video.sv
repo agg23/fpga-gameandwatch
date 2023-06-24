@@ -60,6 +60,8 @@ module video #(
   ) lcd (
       .clk(clk_sys_131_072),
 
+      .reset(reset),
+
       .cpu_id(cpu_id),
 
       .mask_data_wr(mask_data_wr),

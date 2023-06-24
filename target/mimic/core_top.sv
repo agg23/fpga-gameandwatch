@@ -199,7 +199,7 @@ module core_top (
   assign LED_DISK = 0;
   assign LED_POWER = 0;
   assign LED_USER = 0;
-  assign BUTTONS = 0;
+  assign BUTTONS[1] = 0;
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // Config string
@@ -247,22 +247,22 @@ module core_top (
   ////////////////////////////////////////////////////////////////////////////////////////
   // HPS (Hard Processor System)
 
-  wire [127:0] status;
-  wire [  1:0] buttons;
+  wire                       [127:0]                status;
+  wire                       [  1:0]                hps_buttons;
 
   // HPS <=> FPGA - Downloads/Upload
-  wire         ioctl_download;
-  wire         ioctl_upload;
-  wire         ioctl_upload_req;
-  wire [  7:0] ioctl_index;
-  wire         ioctl_wr;
-  wire [ 24:0] ioctl_addr;
-  wire [ 15:0] ioctl_dout;
-  wire [ 15:0] ioctl_din;
+  wire                                              ioctl_download;
+  wire                                              ioctl_upload;
+  wire ioctl_upload_req = 0;
+  wire                       [  7:0]                ioctl_index;
+  wire                                              ioctl_wr;
+  wire                       [ 24:0]                ioctl_addr;
+  wire                       [ 15:0]                ioctl_dout;
+  wire                       [ 15:0] ioctl_din = 0;
 
   // Inputs
-  wire [ 10:0] ps2_key;
-  wire [ 15:0] joystick_0;
+  wire                       [ 10:0]                ps2_key;
+  wire                       [ 15:0]                joystick_0;
 
   hps_io #(
       .CONF_STR(CONF_STR),
@@ -272,7 +272,7 @@ module core_top (
       .clk_sys(clk_sys_131_072),
       .HPS_BUS(HPS_BUS),
 
-      .buttons(buttons),
+      .buttons(hps_buttons),
       .status (status),
 
       .ioctl_upload    (ioctl_upload),
@@ -299,14 +299,41 @@ module core_top (
 
   reg has_rom = 0;
 
+  // ~1s
+  reg [25:0] open_osd_timeout = {25{1'b1}};
+
+  reg did_reset = 0;
+
+  reg open_osd = 0;
+  assign BUTTONS[0] = open_osd;
+
   reg prev_ioctl_download = 0;
 
-  // Hold core in reset (to blank video) when there is no ROM
   always @(posedge clk_sys_131_072) begin
     prev_ioctl_download <= ioctl_download;
 
+    // Hold core in reset (to blank video) when there is no ROM
     if (~ioctl_download && prev_ioctl_download) begin
       has_rom <= 1;
+    end
+
+    if (RESET) begin
+      did_reset <= 0;
+    end else if (status[0]) begin
+      did_reset <= 1;
+    end
+
+    // Open the OSD automatically by requesting it for 1s at launch
+    if (did_reset && ~status[0]) begin
+      open_osd <= 0;
+
+      if (open_osd_timeout > 0) begin
+        open_osd_timeout <= open_osd_timeout - 25'h1;
+
+        if (~has_rom) begin
+          open_osd <= 1;
+        end
+      end
     end
   end
 
@@ -316,7 +343,7 @@ module core_top (
       .clk_sys_131_072(clk_sys_131_072),
       .clk_vid_32_768 (clk_vid_32_768),
 
-      .reset(RESET || ~has_rom || external_reset || buttons[1]),
+      .reset(RESET || ioctl_download || ~has_rom || external_reset || hps_buttons[1]),
       .pll_core_locked(pll_core_locked),
 
       // Input

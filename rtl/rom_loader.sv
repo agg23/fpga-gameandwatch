@@ -3,29 +3,11 @@ import types::*;
 module rom_loader (
     input wire clk,
 
+    input wire        ioctl_download,
     input wire        ioctl_wr,
     input wire [24:0] ioctl_addr,
     input wire [15:0] ioctl_dout,
 
-    // Main config
-    // output reg  [ 7:0] mpu,
-    // output reg  [ 7:0] screen_config,
-    // output wire [11:0] screen_width,
-    // output wire [11:0] screen_height,
-
-    // // Input config
-    // output reg [31:0] input_s0_config,
-    // output reg [31:0] input_s1_config,
-    // output reg [31:0] input_s2_config,
-    // output reg [31:0] input_s3_config,
-    // output reg [31:0] input_s4_config,
-    // output reg [31:0] input_s5_config,
-    // output reg [31:0] input_s6_config,
-    // output reg [31:0] input_s7_config,
-
-    // output reg [7:0] input_b_config,
-    // output reg [7:0] input_ba_config,
-    // output reg [7:0] input_acl_config,
     output system_config sys_config,
 
     // Data signals
@@ -63,7 +45,6 @@ module rom_loader (
   end
 
   reg [23:0] screen_size = 0;
-  // assign {screen_height, screen_width} = screen_size;
 
   reg [15:0] buffer = 0;
   reg [ 1:0] read_count = 0;
@@ -105,6 +86,12 @@ module rom_loader (
   reg [5:0] byte_count = 0;
 
   always @(posedge clk) begin
+    if (state == DONE && ~ioctl_download) begin
+      // Reset to load another ROM
+      state <= VERSION;
+      byte_count <= 6'h0;
+    end
+
     if (wr_8bit) begin
       case (state)
         VERSION: begin

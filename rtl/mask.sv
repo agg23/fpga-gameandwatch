@@ -3,6 +3,8 @@ module mask #(
 ) (
     input wire clk,
 
+    input wire reset,
+
     input wire        ioctl_wr,
     input wire [15:0] ioctl_dout,
 
@@ -20,17 +22,7 @@ module mask #(
   reg [14:0] read_addr = 0;
   reg [14:0] write_addr = 0;
 
-  // reg [39:0] mask_rom[18720];
-  // reg [39:0] mask_output = 0;
-
   reg wren = 0;
-
-  // always @(posedge clk) begin
-  //   if (wren) begin
-  //     mask_rom[write_addr] <= buffer_40;
-  //   end
-  //   mask_output <= mask_rom[read_addr];
-  // end
 
   wire [9:0] next_segment_id;
 
@@ -66,8 +58,16 @@ module mask #(
   reg [2:0] buffer_40_bytes = 0;
   reg prev_wren = 0;
 
+  reg prev_reset = 0;
+
   always @(posedge clk) begin
-    prev_wren <= wren;
+    prev_reset <= reset;
+    prev_wren  <= wren;
+
+    if (reset && ~prev_reset) begin
+      write_addr <= 0;
+    end
+
     wren <= 0;
 
     if (buffer_16_bytes > 0) begin

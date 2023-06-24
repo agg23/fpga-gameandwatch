@@ -7,6 +7,8 @@ module segments #(
 ) (
     input wire clk,
 
+    input wire reset,
+
     input wire [3:0] cpu_id,
 
     input wire mask_data_wr,
@@ -38,6 +40,8 @@ module segments #(
       .CLOCK_RATIO(CLOCK_RATIO)
   ) mask (
       .clk(clk),
+
+      .reset(reset),
 
       .ioctl_wr  (mask_data_wr),
       .ioctl_dout(mask_data),

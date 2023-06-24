@@ -3,6 +3,8 @@ module lcd #(
 ) (
     input wire clk,
 
+    input wire reset,
+
     input wire [3:0] cpu_id,
 
     input wire mask_data_wr,
@@ -72,6 +74,8 @@ module lcd #(
       .MAX_Z_SEGMENT(MAX_Z_SEGMENT)
   ) lcd_segments (
       .clk(clk),
+
+      .reset(reset),
 
       .cpu_id(cpu_id),
 

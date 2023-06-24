@@ -93,10 +93,6 @@ module sm510 (
   ////////////////////////////////////////////////////////////////////////////////////////
   // Divider
 
-  // TODO: Refactor - Move these registers
-  // reg reset_gamma = 0;
-  // reg reset_divider = 0;
-
   divider div (
       .clk(clk),
       .clk_en(clk_en),
@@ -549,6 +545,9 @@ module sm510 (
 
       inst.temp_sbm <= 0;
 
+      inst.next_ram_addr <= 0;
+      inst.wr_next_ram_addr <= 0;
+
       inst.reset_divider <= 0;
       inst.reset_divider_keep_6 <= 0;
       inst.reset_gamma <= 0;
@@ -567,10 +566,14 @@ module sm510 (
       last_opcode <= 0;
       last_temp_sbm <= 0;
 
+      inst.output_r <= 0;
+
       case (cpu_id)
         4: begin
           // SM5a
           inst.stored_output_r <= 4'hF;
+
+          inst.stack_s <= inst.pc;
         end
         default: begin
           // SM510
@@ -587,8 +590,6 @@ module sm510 (
       inst.cb_bank <= 0;
 
       inst.within_subroutine <= 0;
-
-      inst.stack_s <= inst.pc;
 
       inst.lcd_cn <= 0;
       inst.m_prime <= 0;
