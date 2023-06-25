@@ -1,8 +1,8 @@
 import types::*;
 
 module gameandwatch (
-    input wire clk_sys_131_072,
-    input wire clk_vid_32_768,
+    input wire clk_sys_99_287,
+    input wire clk_vid_33_095,
 
     input wire reset,
     input wire pll_core_locked,
@@ -71,7 +71,7 @@ module gameandwatch (
   wire [3:0] cpu_id = sys_config.mpu[3:0];
 
   rom_loader rom_loader (
-      .clk(clk_sys_131_072),
+      .clk(clk_sys_99_287),
 
       .ioctl_download(ioctl_download),
       .ioctl_wr(ioctl_wr),
@@ -100,13 +100,13 @@ module gameandwatch (
 
   reg [7:0] rom[4096];
 
-  always @(posedge clk_sys_131_072) begin
+  always @(posedge clk_sys_99_287) begin
     if (clk_en) begin
       rom_data <= rom[rom_addr];
     end
   end
 
-  always @(posedge clk_sys_131_072) begin
+  always @(posedge clk_sys_99_287) begin
     if (wr_8bit && rom_download) begin
       // ioctl_dout has flipped bytes, flip back by modifying address
       rom[{addr_8bit[25:1], ~addr_8bit[0]}] <= data_8bit;
@@ -128,7 +128,7 @@ module gameandwatch (
   wire input_acl;
 
   input_config input_config (
-      .clk(clk_sys_131_072),
+      .clk(clk_sys_99_287),
 
       .sys_config(sys_config),
 
@@ -169,7 +169,7 @@ module gameandwatch (
 
   wire clk_en = clock_divider == 0;
 
-  always @(posedge clk_sys_131_072) begin
+  always @(posedge clk_sys_99_287) begin
     clock_divider <= clock_divider - 1;
 
     if (clock_divider == 0) begin
@@ -189,7 +189,7 @@ module gameandwatch (
   wire divider_1khz;
 
   sm510 sm510 (
-      .clk(clk_sys_131_072),
+      .clk(clk_sys_99_287),
 
       .clk_en(clk_en),
 
@@ -239,8 +239,8 @@ module gameandwatch (
   video #(
       .CLOCK_RATIO(3)
   ) video (
-      .clk_sys_131_072(clk_sys_131_072),
-      .clk_vid_32_768 (clk_vid_32_768),
+      .clk_sys_99_287(clk_sys_99_287),
+      .clk_vid_33_095(clk_vid_33_095),
 
       .reset(reset || ioctl_download),
 
@@ -287,7 +287,7 @@ module gameandwatch (
       .CLOCK_SPEED_MHZ(99.28704),
       .CAS_LATENCY(2)
   ) sdram (
-      .clk  (clk_sys_131_072),
+      .clk  (clk_sys_99_287),
       .reset(~pll_core_locked),
 
       // Port 0

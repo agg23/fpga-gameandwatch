@@ -518,7 +518,7 @@ module core_top (
       .WRITE_MEM_EN_CYCLE_LENGTH(1)
   ) data_loader (
       .clk_74a(clk_74a),
-      .clk_memory(clk_sys_131_072),
+      .clk_memory(clk_sys_99_287),
 
       .bridge_wr(bridge_wr),
       .bridge_endian_little(bridge_endian_little),
@@ -551,7 +551,7 @@ module core_top (
   ) internal_s (
       {ioctl_download, reset_n, pll_core_locked, external_reset, accurate_lcd_timing},
       {ioctl_download_s, reset_n_s, pll_core_locked_s, external_reset_s, accurate_lcd_timing_s},
-      clk_sys_131_072
+      clk_sys_99_287
   );
 
   wire [31:0] cont1_key_s;
@@ -561,7 +561,7 @@ module core_top (
   ) cont1_s (
       cont1_key,
       cont1_key_s,
-      clk_sys_131_072
+      clk_sys_99_287
   );
 
   ////////////////////////////////////////////////////////////////////////////////////////
@@ -570,8 +570,8 @@ module core_top (
   wire sound;
 
   gameandwatch gameandwatch (
-      .clk_sys_131_072(clk_sys_131_072),
-      .clk_vid_32_768 (clk_vid_32_768),
+      .clk_sys_99_287(clk_sys_99_287),
+      .clk_vid_33_095(clk_vid_33_095),
 
       .reset(~reset_n_s || external_reset_s),
       .pll_core_locked(pll_core_locked_s),
@@ -630,8 +630,8 @@ module core_top (
   wire de;
   wire [23:0] rgb;
 
-  assign video_rgb_clock = clk_vid_32_768;
-  assign video_rgb_clock_90 = clk_vid_32_768_90deg;
+  assign video_rgb_clock = clk_vid_33_095;
+  assign video_rgb_clock_90 = clk_vid_33_095_90deg;
   assign video_rgb = de ? rgb : 24'h0;
   assign video_de = de;
   assign video_skip = 0;
@@ -647,7 +647,7 @@ module core_top (
       .CHANNEL_WIDTH(15)
   ) sound_i2s (
       .clk_74a  (clk_74a),
-      .clk_audio(clk_sys_131_072),
+      .clk_audio(clk_sys_99_287),
 
       .audio_l(audio_l),
       .audio_r(audio_l),
@@ -660,9 +660,9 @@ module core_top (
   ////////////////////////////////////////////////////////////////////////////////////////
   // PLL
 
-  wire clk_sys_131_072;
-  wire clk_vid_32_768;
-  wire clk_vid_32_768_90deg;
+  wire clk_sys_99_287;
+  wire clk_vid_33_095;
+  wire clk_vid_33_095_90deg;
 
   wire pll_core_locked;
   wire pll_core_locked_s74;
@@ -676,9 +676,9 @@ module core_top (
       .refclk(clk_74a),
       .rst   (0),
 
-      .outclk_0(clk_sys_131_072),
-      .outclk_1(clk_vid_32_768),
-      .outclk_2(clk_vid_32_768_90deg),
+      .outclk_0(clk_sys_99_287),
+      .outclk_1(clk_vid_33_095),
+      .outclk_2(clk_vid_33_095_90deg),
 
       .locked(pll_core_locked)
   );

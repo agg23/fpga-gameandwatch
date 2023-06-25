@@ -1,6 +1,6 @@
 module rgb_controller (
-    input wire clk_sys_131_072,
-    input wire clk_vid_32_768,
+    input wire clk_sys_99_287,
+    input wire clk_vid_33_095,
 
     input wire reset,
 
@@ -25,8 +25,8 @@ module rgb_controller (
   wire fifo_clear = hblank_int && ~prev_hblank;
 
   image_fifo background_image_fifo (
-      .wrclk(clk_sys_131_072),
-      .rdclk(clk_vid_32_768),
+      .wrclk(clk_sys_99_287),
+      .rdclk(clk_vid_33_095),
 
       .wrreq(buffer_count == 3'h3),
       .data (background_buffer),
@@ -40,8 +40,8 @@ module rgb_controller (
   );
 
   image_fifo mask_image_fifo (
-      .wrclk(clk_sys_131_072),
-      .rdclk(clk_vid_32_768),
+      .wrclk(clk_sys_99_287),
+      .rdclk(clk_vid_33_095),
 
       .wrreq(buffer_count == 3'h3),
       .data (mask_buffer),
@@ -65,7 +65,7 @@ module rgb_controller (
   reg [2:0] buffer_count = 0;
   reg [15:0] sd_read_count = 0;
 
-  always @(posedge clk_sys_131_072) begin
+  always @(posedge clk_sys_99_287) begin
     if (reset) begin
       background_buffer <= 0;
       mask_buffer <= 0;
@@ -128,7 +128,7 @@ module rgb_controller (
   // Address of the next line of the image
   // Address calculates the number of bytes (not words) so we have full precision
   // Essentually multiply by two, then divide by to for interleaved data, then byte addressing
-  always @(posedge clk_sys_131_072) begin
+  always @(posedge clk_sys_99_287) begin
     reg [ 9:0] read_y;
     reg [25:0] read_byte_addr;
 

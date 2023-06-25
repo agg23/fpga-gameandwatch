@@ -1,8 +1,8 @@
 module video #(
     parameter CLOCK_RATIO = 3
 ) (
-    input wire clk_sys_131_072,
-    input wire clk_vid_32_768,
+    input wire clk_sys_99_287,
+    input wire clk_vid_33_095,
 
     input wire reset,
 
@@ -58,7 +58,7 @@ module video #(
   lcd #(
       .CLOCK_RATIO(CLOCK_RATIO)
   ) lcd (
-      .clk(clk_sys_131_072),
+      .clk(clk_sys_99_287),
 
       .reset(reset),
 
@@ -97,8 +97,8 @@ module video #(
   assign rgb = reset ? 24'h0 : segment_en ? mask_rgb : background_rgb;
 
   rgb_controller rgb_controller (
-      .clk_sys_131_072(clk_sys_131_072),
-      .clk_vid_32_768 (clk_vid_32_768),
+      .clk_sys_99_287(clk_sys_99_287),
+      .clk_vid_33_095(clk_vid_33_095),
 
       .reset(reset),
 
@@ -124,7 +124,7 @@ module video #(
   // Sync counts
 
   // Delay all signals by 1 cycle so that RGB is caught up
-  always @(posedge clk_vid_32_768) begin
+  always @(posedge clk_vid_33_095) begin
     hsync <= hsync_int;
     vsync <= vsync_int;
     hblank <= hblank_int;
@@ -134,7 +134,7 @@ module video #(
   end
 
   counts counts (
-      .clk(clk_vid_32_768),
+      .clk(clk_vid_33_095),
 
       .x(video_x),
       .y(video_y),

@@ -231,16 +231,16 @@ module core_top (
   ////////////////////////////////////////////////////////////////////////////////////////
   // PLL
 
-  wire clk_sys_131_072;
-  wire clk_vid_32_768;
+  wire clk_sys_99_287;
+  wire clk_vid_33_095;
 
   wire pll_core_locked;
 
   pll pll_core (
       .refclk  (CLK_50M),
       .rst     (0),
-      .outclk_0(clk_sys_131_072),
-      .outclk_1(clk_vid_32_768),
+      .outclk_0(clk_sys_99_287),
+      .outclk_1(clk_vid_33_095),
       .locked  (pll_core_locked)
   );
 
@@ -269,7 +269,7 @@ module core_top (
       // Use 16 bit ioctl
       .WIDE(1)
   ) hps_io (
-      .clk_sys(clk_sys_131_072),
+      .clk_sys(clk_sys_99_287),
       .HPS_BUS(HPS_BUS),
 
       .buttons(hps_buttons),
@@ -309,7 +309,7 @@ module core_top (
 
   reg prev_ioctl_download = 0;
 
-  always @(posedge clk_sys_131_072) begin
+  always @(posedge clk_sys_99_287) begin
     prev_ioctl_download <= ioctl_download;
 
     // Hold core in reset (to blank video) when there is no ROM
@@ -340,8 +340,8 @@ module core_top (
   wire sound;
 
   gameandwatch gameandwatch (
-      .clk_sys_131_072(clk_sys_131_072),
-      .clk_vid_32_768 (clk_vid_32_768),
+      .clk_sys_99_287(clk_sys_99_287),
+      .clk_vid_33_095(clk_vid_33_095),
 
       .reset(RESET || ioctl_download || ~has_rom || external_reset || hps_buttons[1]),
       .pll_core_locked(pll_core_locked),
@@ -402,7 +402,7 @@ module core_top (
   wire de;
   wire [23:0] rgb;
 
-  assign CLK_VIDEO = clk_vid_32_768;
+  assign CLK_VIDEO = clk_vid_33_095;
   assign VGA_DE = de;
   assign CE_PIXEL = 1;
   assign VGA_HS = hsync;
