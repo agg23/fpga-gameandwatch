@@ -1,0 +1,3 @@
+[submodule "target/vendor/sdram-controller"]
+	path = target/vendor/sdram-controller
+	url = https://github.com/agg23/sdram-controller.git

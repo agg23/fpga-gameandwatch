@@ -1,6 +1,4 @@
-set_global_assignment -name QIP_FILE              [file join $::quartus(qip_path) "../shared/shared.qip"]
+set_global_assignment -name QIP_FILE             [file join $::quartus(qip_path) "../shared/shared.qip"]
+set_global_assignment -name QIP_FILE             [file join $::quartus(qip_path) "../vendor/vendor.qip"]
 set_global_assignment -name SYSTEMVERILOG_FILE   [file join $::quartus(qip_path) "core_top.sv"]
 set_global_assignment -name QIP_FILE             [file join $::quartus(qip_path) "pll/pll.qip"]
-
-# TODO: Remove
-set_global_assignment -name SYSTEMVERILOG_FILE    [file join $::quartus(qip_path) "../../../../sdram_controller/sdram_burst.sv"]
