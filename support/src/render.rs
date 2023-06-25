@@ -126,7 +126,7 @@ pub fn render(
                 already_applied_refs.insert(&element.ref_name);
 
                 match element.ref_name.to_lowercase().as_str() {
-                    "dust" => {
+                    "dust" | "bubbles" => {
                         // Ignore these features
                         println!("Ignoring element by name {}", element.ref_name);
                         continue;
