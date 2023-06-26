@@ -19,5 +19,7 @@ package types;
     reg [7:0] input_b_config;
     reg [7:0] input_ba_config;
     reg [7:0] input_acl_config;
+
+    reg [3:0] grounded_port_config;
   } system_config;
 endpackage

@@ -203,8 +203,17 @@ fn build_config(platform: &PlatformSpecification) -> Result<Vec<u8>, String> {
     };
     config.push(acl_port);
 
+    let ground_index = if let Some(ground_last_index) = platform.port_map.ground_last_index {
+        ground_last_index
+    } else {
+        // Unset
+        0xFF
+    };
+
+    config.push(ground_index);
+
     // Spacer pixels for input mapping
-    for _ in 0..5 {
+    for _ in 0..4 {
         config.push(0);
     }
 

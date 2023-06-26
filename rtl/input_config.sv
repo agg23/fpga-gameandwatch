@@ -32,12 +32,29 @@ module input_config (
     output reg input_ba = 0,
     output reg input_acl = 0
 );
+  localparam INACTIVE_CONFIG_ROW = 32'h7F7F_7F7F;
 
   // Comb
   reg [31:0] active_input_config;
+  // Always active config
+  reg [31:0] grounded_input_config;
+
+  function [31:0] s_config_by_index(reg [2:0] index);
+    case (index)
+      0: return sys_config.input_s0_config;
+      1: return sys_config.input_s1_config;
+      2: return sys_config.input_s2_config;
+      3: return sys_config.input_s3_config;
+      4: return sys_config.input_s4_config;
+      5: return sys_config.input_s5_config;
+      6: return sys_config.input_s6_config;
+      7: return sys_config.input_s7_config;
+    endcase
+  endfunction
 
   always_comb begin
-    active_input_config = sys_config.input_s0_config;
+    active_input_config   = sys_config.input_s0_config;
+    grounded_input_config = INACTIVE_CONFIG_ROW;
 
     case (cpu_id)
       4: begin
@@ -56,6 +73,13 @@ module input_config (
         else if (output_shifter_s[5]) active_input_config = sys_config.input_s5_config;
         else if (output_shifter_s[6]) active_input_config = sys_config.input_s6_config;
         else if (output_shifter_s[7]) active_input_config = sys_config.input_s7_config;
+
+        if (sys_config.grounded_port_config[3]) begin
+          // Disabled
+          grounded_input_config = INACTIVE_CONFIG_ROW;
+        end else begin
+          grounded_input_config = s_config_by_index(sys_config.grounded_port_config[2:0]);
+        end
       end
     endcase
   end
@@ -110,12 +134,24 @@ module input_config (
   endfunction
 
   always @(posedge clk) begin
-    input_k <= {
+    reg [31:0] main_input_k;
+    reg [31:0] grounded_input_k;
+
+    main_input_k = {
       input_mux(active_input_config[31:24]),
       input_mux(active_input_config[23:16]),
       input_mux(active_input_config[15:8]),
       input_mux(active_input_config[7:0])
     };
+
+    grounded_input_k = {
+      input_mux(grounded_input_config[31:24]),
+      input_mux(grounded_input_config[23:16]),
+      input_mux(grounded_input_config[15:8]),
+      input_mux(grounded_input_config[7:0])
+    };
+
+    input_k <= main_input_k | grounded_input_k;
 
     input_beta <= input_mux(sys_config.input_b_config);
     input_ba <= input_mux(sys_config.input_ba_config);

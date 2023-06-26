@@ -71,9 +71,11 @@ pub struct Size {
 /* Input Mapping */
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlatformPortMapping {
     pub ports: Vec<Port>,
     pub include: Option<String>,
+    pub ground_last_index: Option<u8>,
 }
 
 #[derive(Debug, Deserialize)]

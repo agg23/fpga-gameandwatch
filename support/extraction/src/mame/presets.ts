@@ -2,7 +2,10 @@ import { CPUType, PresetDefinition } from "./types";
 
 const MAIN_CALL_REGEX = /(.*)\(config,(.*)\)/;
 
-export const createPreset = (constructorBody: string, name: string) => {
+export const createPreset = (
+  constructorBody: string,
+  name: string
+): PresetDefinition | undefined => {
   const lines = constructorBody.trim().split("\n");
 
   if (lines.length > 1) {

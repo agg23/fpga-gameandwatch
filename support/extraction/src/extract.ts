@@ -19,6 +19,10 @@ const CLASS_DEF_CONSTUCTOR_REGEX = /void\s+(.*)\(machine_config &config/g;
 const SYS_DEF_REGEX =
   /SYST\(\s*([0-9\?]{4})\s*,\s*(.*?)?\s*,.*?,.*?,.*?,.*?,.*?,.*?,\s*"(.*?)"\s*,\s*"(.*?)"/g;
 
+// Used to check if `inp_fixed_last` is called
+const PUBLIC_CONSTRUCTOR_REGEX_BUILDER = (deviceName: string) =>
+  new RegExp(`${deviceName}\\(.*?\\)\\s*:[\\s\\S]*?{([^}]*)}`);
+
 const INSTANCE_CONSTRUCTOR_REGEX_BUILDER = (
   stateName: string,
   deviceName: string
@@ -61,6 +65,31 @@ const run = () => {
     }
 
     const portMap = parseInputs(body, name);
+
+    const constructorMatch = file.match(
+      PUBLIC_CONSTRUCTOR_REGEX_BUILDER(`${name}_state`)
+    );
+
+    if (constructorMatch) {
+      const contents = constructorMatch[1].trim();
+
+      if (contents === "inp_fixed_last();") {
+        // Last named port is grounded
+        if (portMap.ports.length != 0) {
+          // Get last S port index
+          for (let i = portMap.ports.length - 1; i >= 0; i--) {
+            const port = portMap.ports[i];
+
+            if (port.type === "s") {
+              // This is the one
+              portMap.groundLastIndex = i;
+              break;
+            }
+          }
+        }
+      }
+    }
+
     ports[name] = portMap;
   }
 

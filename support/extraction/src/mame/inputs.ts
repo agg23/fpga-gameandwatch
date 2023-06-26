@@ -169,17 +169,35 @@ export const parseInputs = (
     ports.push(currentPort);
   }
 
-  const filteredPorts = ports.filter((p) => {
-    // Strip empty S inputs
-    if (p.type === "s" && p.bitmap.filter((b) => !!b).length === 0) {
-      return false;
-    }
+  const filteredSortedPorts = ports
+    .filter((p) => {
+      // Strip empty S inputs
+      if (p.type === "s" && p.bitmap.filter((b) => !!b).length === 0) {
+        return false;
+      }
 
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      const portIndex = (port: Port): number => {
+        switch (a.type) {
+          case "s":
+            return a.index;
+          // S takes 0-7, start at 8
+          case "b":
+            return 8;
+          case "ba":
+            return 9;
+          case "acl":
+            return 10;
+        }
+      };
+
+      return portIndex(a) - portIndex(b);
+    });
 
   return {
-    ports: filteredPorts,
+    ports: filteredSortedPorts,
     include: portInclude,
   };
 };

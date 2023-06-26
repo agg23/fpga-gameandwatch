@@ -161,10 +161,13 @@ module rom_loader (
           end else if (byte_count == 34) begin
             // ACL
             sys_config.input_acl_config <= data_8bit;
+          end else if (byte_count == 35) begin
+            // Grounded port index
+            sys_config.grounded_port_config <= data_8bit[3:0];
           end
 
           // Extra gap for reserved bytes
-          if (byte_count == 6'h27) begin
+          if (byte_count == 6'h35) begin
             state <= DONE;
           end
         end

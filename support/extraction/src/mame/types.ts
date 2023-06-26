@@ -129,4 +129,5 @@ export type Port =
 export interface PlatformPortMapping {
   ports: Port[];
   include?: string;
+  groundLastIndex?: number;
 }
