@@ -128,31 +128,17 @@ pub fn render(
             // Set first value
             max_common_y = Some(bounds.y);
         }
-
-        println!("{bounds:?}");
     }
 
     let max_common_x = max_common_x.map_or(0, |x| x.max(0));
     let max_common_y = max_common_y.map_or(0, |y| y.max(0));
 
-    let calculated_bounds = Bounds {
+    let view_bounds = Bounds {
         x: (min_x.map_or(0, |x| x) - max_common_x).max(0),
         y: (min_y.map_or(0, |y| y) - max_common_y).max(0),
         width: max_width - max_common_x,
         height: max_height - max_common_y,
     };
-
-    println!("{max_common_x} {max_common_y} {calculated_bounds:?} {view_bounds:?}");
-
-    let view_bounds = calculated_bounds;
-
-    // if let Some(set_bounds) = view_bounds {
-    //     if (set_bounds.width - calculated_bounds.width).abs() > calculated_bounds.width * 0.3
-    //         || (set_bounds.height - calculated_bounds.height).abs() > calculated_bounds.height * 0.3
-    //     {
-    //         println!("Listed bounds differ from actual bounds by > 30%. Using actual bounds")
-    //     }
-    // }
 
     let x_ratio = WIDTH as f32 / view_bounds.width as f32;
     let y_ratio = HEIGHT as f32 / view_bounds.height as f32;
@@ -171,8 +157,6 @@ pub fn render(
         let scaled_height = view_bounds.height as f32 * ratio;
         (0, (HEIGHT as i32 - scaled_height.round() as i32) / 2)
     };
-
-    println!("{x_ratio} {y_ratio} {x_offset}, {y_offset}");
 
     // Keep track of the set of pixels that make up each screen
     let mut pixels_to_mask_id: Vec<Option<u16>> = vec![None; WIDTH * HEIGHT];
@@ -228,12 +212,6 @@ pub fn render(
 
                 let dimensions =
                     ImageDimensions::new(&view_bounds, &element_bounds, ratio, x_offset, y_offset);
-
-                println!(
-                    "{element_bounds:?} {} {}, {dimensions:?}",
-                    image.width(),
-                    image.height()
-                );
 
                 let image: DynamicImage = DynamicImage::ImageRgba8(image).resize_exact(
                     dimensions.width,
@@ -359,8 +337,6 @@ pub fn render(
         Transform::identity(),
         None,
     );
-
-    println!("{} {}", output_mask.width(), output_mask.height());
 
     if debug {
         let debug_path = asset_dir.join(format!("{platform_name}.png"));
