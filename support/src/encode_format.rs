@@ -259,7 +259,7 @@ fn input_value_for_port(action: NamedAction) -> u8 {
 }
 
 const BYTES_PER_ENTRY: usize = 5;
-const AVERAGE_ENTRIES_PER_ROW: usize = 26;
+const AVERAGE_ENTRIES_PER_ROW: usize = 52;
 const TOTAL_BYTE_LENGTH: usize = BYTES_PER_ENTRY * AVERAGE_ENTRIES_PER_ROW * HEIGHT;
 
 fn insert_mask_entry_bytes(
@@ -270,10 +270,10 @@ fn insert_mask_entry_bytes(
     start_x: usize,
     y: usize,
 ) -> Result<(), String> {
-    if *byte_index > TOTAL_BYTE_LENGTH {
+    if *byte_index + BYTES_PER_ENTRY > TOTAL_BYTE_LENGTH {
         return Err(format!(
             "More entries ({}) than allowed ({TOTAL_BYTE_LENGTH})",
-            byte_index
+            *byte_index + BYTES_PER_ENTRY
         ));
     }
 

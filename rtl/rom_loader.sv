@@ -25,7 +25,7 @@ module rom_loader (
   // Word addresses
   localparam IMAGE_START_ADDR = 25'h80;
   localparam MASK_CONFIG_ADDR = 25'h17BB80;
-  localparam ROM_DATA_ADDR = 25'h187250;
+  localparam ROM_DATA_ADDR = 25'h192920;
 
   // wire config_data = ioctl_addr < IMAGE_START_ADDR;
   assign image_download = ioctl_addr >= IMAGE_START_ADDR && ioctl_addr < MASK_CONFIG_ADDR;

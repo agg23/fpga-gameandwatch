@@ -19,8 +19,8 @@ module mask #(
   ////////////////////////////////////////////////////////////////////////////////////////
   // ROM management
 
-  reg [14:0] read_addr = 0;
-  reg [14:0] write_addr = 0;
+  reg [15:0] read_addr = 0;
+  reg [15:0] write_addr = 0;
 
   reg wren = 0;
 
@@ -84,7 +84,7 @@ module mask #(
 
     if (~wren && prev_wren) begin
       // Finished write, increment addr
-      write_addr <= write_addr + 15'h1;
+      write_addr <= write_addr + 16'h1;
     end
   end
 
@@ -126,7 +126,7 @@ module mask #(
         length <= segment_length - 10'h1;
 
         if (segment_length == 10'h1) begin
-          read_addr <= read_addr + 15'h1;
+          read_addr <= read_addr + 16'h1;
         end
       end else if (in_segment) begin
         // Existing segment
@@ -135,7 +135,7 @@ module mask #(
         in_segment <= length > 10'h0;
 
         if (length == 10'h1) begin
-          read_addr <= read_addr + 15'h1;
+          read_addr <= read_addr + 16'h1;
         end
       end else begin
         has_segment <= 0;

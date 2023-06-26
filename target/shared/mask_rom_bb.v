@@ -39,7 +39,7 @@ module mask_rom (
 	wren,
 	q);
 
-	input	[14:0]  address;
+	input	[15:0]  address;
 	input	  clock;
 	input	[39:0]  data;
 	input	  wren;
@@ -77,7 +77,7 @@ endmodule
 // Retrieval info: PRIVATE: JTAG_ID STRING "NONE"
 // Retrieval info: PRIVATE: MAXIMUM_DEPTH NUMERIC "0"
 // Retrieval info: PRIVATE: MIFfilename STRING ""
-// Retrieval info: PRIVATE: NUMWORDS_A NUMERIC "18720"
+// Retrieval info: PRIVATE: NUMWORDS_A NUMERIC "37440"
 // Retrieval info: PRIVATE: RAM_BLOCK_TYPE NUMERIC "0"
 // Retrieval info: PRIVATE: READ_DURING_WRITE_MODE_PORT_A NUMERIC "2"
 // Retrieval info: PRIVATE: RegAddr NUMERIC "1"
@@ -87,7 +87,7 @@ endmodule
 // Retrieval info: PRIVATE: SingleClock NUMERIC "1"
 // Retrieval info: PRIVATE: UseDQRAM NUMERIC "1"
 // Retrieval info: PRIVATE: WRCONTROL_ACLR_A NUMERIC "0"
-// Retrieval info: PRIVATE: WidthAddr NUMERIC "15"
+// Retrieval info: PRIVATE: WidthAddr NUMERIC "16"
 // Retrieval info: PRIVATE: WidthData NUMERIC "40"
 // Retrieval info: PRIVATE: rden NUMERIC "0"
 // Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
@@ -96,21 +96,21 @@ endmodule
 // Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone V"
 // Retrieval info: CONSTANT: LPM_HINT STRING "ENABLE_RUNTIME_MOD=NO"
 // Retrieval info: CONSTANT: LPM_TYPE STRING "altsyncram"
-// Retrieval info: CONSTANT: NUMWORDS_A NUMERIC "18720"
+// Retrieval info: CONSTANT: NUMWORDS_A NUMERIC "37440"
 // Retrieval info: CONSTANT: OPERATION_MODE STRING "SINGLE_PORT"
 // Retrieval info: CONSTANT: OUTDATA_ACLR_A STRING "NONE"
 // Retrieval info: CONSTANT: OUTDATA_REG_A STRING "CLOCK0"
 // Retrieval info: CONSTANT: POWER_UP_UNINITIALIZED STRING "FALSE"
 // Retrieval info: CONSTANT: READ_DURING_WRITE_MODE_PORT_A STRING "DONT_CARE"
-// Retrieval info: CONSTANT: WIDTHAD_A NUMERIC "15"
+// Retrieval info: CONSTANT: WIDTHAD_A NUMERIC "16"
 // Retrieval info: CONSTANT: WIDTH_A NUMERIC "40"
 // Retrieval info: CONSTANT: WIDTH_BYTEENA_A NUMERIC "1"
-// Retrieval info: USED_PORT: address 0 0 15 0 INPUT NODEFVAL "address[14..0]"
+// Retrieval info: USED_PORT: address 0 0 16 0 INPUT NODEFVAL "address[15..0]"
 // Retrieval info: USED_PORT: clock 0 0 0 0 INPUT VCC "clock"
 // Retrieval info: USED_PORT: data 0 0 40 0 INPUT NODEFVAL "data[39..0]"
 // Retrieval info: USED_PORT: q 0 0 40 0 OUTPUT NODEFVAL "q[39..0]"
 // Retrieval info: USED_PORT: wren 0 0 0 0 INPUT NODEFVAL "wren"
-// Retrieval info: CONNECT: @address_a 0 0 15 0 address 0 0 15 0
+// Retrieval info: CONNECT: @address_a 0 0 16 0 address 0 0 16 0
 // Retrieval info: CONNECT: @clock0 0 0 0 0 clock 0 0 0 0
 // Retrieval info: CONNECT: @data_a 0 0 40 0 data 0 0 40 0
 // Retrieval info: CONNECT: @wren_a 0 0 0 0 wren 0 0 0 0

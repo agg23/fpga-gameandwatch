@@ -6,7 +6,7 @@ Our video clock is 32.768MHz. We need a full pixel (3 bytes) every clock (30.5ns
 
 ```
 40 bits: [id 10bit][x 10bit][y 10bit][length 10bit]...next
-0x16DA0 bytes total
+0x2DB40 bytes total - 720 rows, average of 52 entries, 5 bytes each
 ```
 
 ## Config
@@ -17,10 +17,9 @@ First bit is version. Spec V1 is as follows:
 0x0: [version 8 bits (01)][mpu 8 bits][screen configuration 8 bits][screen width|screen height 24 bits][reserved 16 bits]
 0x8: [input mapping 40 bytes]
 0x30: Start of reserved space
-0x100: Start of byte interleaved images
-0x17BC00: If dual screen, start of image 2, otherwise middle of image
-0x2F7700: [mask config 0x16DA0 bytes] End of images, start of mask config
-0x30E4A0: ROM data
+0x80: Start of byte interleaved images
+0x17BB80: [mask config 0x2DB40 bytes] End of images, start of mask config
+0x1A96C0: ROM data
 ```
 
 0000_1101_11 -> 00_0011_0111
