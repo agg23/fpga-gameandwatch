@@ -226,7 +226,7 @@ fn main() {
 
     let mut fail = |name: &String, message: String| {
         println!("{message}");
-        println!("Skipping device {name}\n");
+        println!("{}", format!("Skipping device {name}\n").red());
 
         fail_count += 1;
     };

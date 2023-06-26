@@ -86,11 +86,9 @@ pub fn render(
     let mut max_common_x: Option<i32> = None;
     let mut max_common_y: Option<i32> = None;
 
-    for bounds in elements
-        .iter()
-        .map(|e| e.bounds.to_xy())
-        .chain(screens.iter().map(|s| s.bounds.to_xy()))
-    {
+    // Calculate max bounds
+    // Only Element nodes are used, as Screen's should not drive the overall picture size (they sometimes overrun it)
+    for bounds in elements.iter().map(|e| e.bounds.to_xy()) {
         if let Some(inner_min_x) = min_x {
             if inner_min_x > bounds.x {
                 min_x = Some(bounds.x);
@@ -134,8 +132,8 @@ pub fn render(
         println!("{bounds:?}");
     }
 
-    let max_common_x = max_common_x.map_or(0, |x| x);
-    let max_common_y = max_common_y.map_or(0, |y| y);
+    let max_common_x = max_common_x.map_or(0, |x| x.max(0));
+    let max_common_y = max_common_y.map_or(0, |y| y.max(0));
 
     let calculated_bounds = Bounds {
         x: (min_x.map_or(0, |x| x) - max_common_x).max(0),
@@ -207,9 +205,23 @@ pub fn render(
 
                 let element_bounds = element.bounds.to_xy();
 
+                let x = if element_bounds.x >= 0 {
+                    // Only normalize to 0 if we started out positive
+                    (element_bounds.x - max_common_x).max(0)
+                } else {
+                    element_bounds.x - max_common_x
+                };
+
+                let y = if element_bounds.y >= 0 {
+                    // Only normalize to 0 if we started out positive
+                    (element_bounds.y - max_common_y).max(0)
+                } else {
+                    element_bounds.y - max_common_y
+                };
+
                 let element_bounds = Bounds {
-                    x: (element_bounds.x - max_common_x).max(0),
-                    y: (element_bounds.y - max_common_y).max(0),
+                    x,
+                    y,
                     width: element_bounds.width,
                     height: element_bounds.height,
                 };
@@ -284,9 +296,23 @@ pub fn render(
 
                 let bounds = screen.bounds.to_xy();
 
+                let x = if bounds.x >= 0 {
+                    // Only normalize to 0 if we started out positive
+                    (bounds.x - max_common_x).max(0)
+                } else {
+                    bounds.x - max_common_x
+                };
+
+                let y = if bounds.y >= 0 {
+                    // Only normalize to 0 if we started out positive
+                    (bounds.y - max_common_y).max(0)
+                } else {
+                    bounds.y - max_common_y
+                };
+
                 let bounds = Bounds {
-                    x: (bounds.x - max_common_x).max(0),
-                    y: (bounds.y - max_common_y).max(0),
+                    x,
+                    y,
                     width: bounds.width,
                     height: bounds.height,
                 };
@@ -440,13 +466,13 @@ impl ImageDimensions {
         let width = (bounds.width as f32 * ratio) as u32;
         let height = (bounds.height as f32 * ratio) as u32;
 
-        if x < 0 {
-            println!("Unexpected X: {x} is less than 0");
-        }
+        // if x < 0 {
+        //     println!("Unexpected X: {x} is less than 0");
+        // }
 
-        if y < 0 {
-            println!("Unexpected Y: {y} is less than 0");
-        }
+        // if y < 0 {
+        //     println!("Unexpected Y: {y} is less than 0");
+        // }
 
         ImageDimensions {
             x: x + x_offset,
