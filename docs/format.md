@@ -58,6 +58,40 @@ NOTE: These won't all be addressable given a normal input scheme, given the limi
 
 The grounded input port is `0xFF` when unset, and the 0-based index otherwise.
 
+| Input Name              | Config Value |
+| ----------------------- | ------------ |
+| JoyUp                   | 0            |
+| JoyDown                 | 1            |
+| JoyLeft                 | 2            |
+| JoyRight                | 3            |
+| Button1                 | 4            |
+| Button2                 | 5            |
+| Button3                 | 6            |
+| Button4                 | 7            |
+| Button5                 | 8            |
+| Button6                 | 9            |
+| Button7                 | 10           |
+| Button8                 | 11           |
+| Select (typically Time) | 12           |
+| Start1 (Game A)         | 13           |
+| Start2 (Game B)         | 14           |
+| Service1                | 15           |
+| Service2                | 16           |
+| LeftJoyUp               | 17           |
+| LeftJoyDown             | 18           |
+| LeftJoyLeft             | 19           |
+| LeftJoyRight            | 20           |
+| RightJoyUp              | 21           |
+| RightJoyDown            | 22           |
+| RightJoyLeft            | 23           |
+| RightJoyRight           | 24           |
+| VolumeDown              | 25           |
+| PowerOn                 | 26           |
+| PowerOff                | 27           |
+| Keypad                  | 28           |
+| Custom                  | 29           |
+| Mark Unused             | `0x7F`       |
+
 ### Images
 
 Images are byte interleaved values of background and mask images. The background is the first byte, and is the lowest byte in each word.
