@@ -1,4 +1,4 @@
-# Data
+# Registers
 
 Note: This document has not been edited and may contain inaccuracies. More information can be found in [Instructions](instructions.md).
 
