@@ -170,7 +170,7 @@ interface instructions (
         output_r <= {~stored_output_r[3:1], r0_mask && ~stored_output_r[0]};
       end
       default: begin
-        // SM510
+        // SM510/SM510 Tiger
         if (output_r_mask == R_MASK_DIRECT) begin
           output_r <= {2'b0, stored_output_r[1:0]};
         end else begin

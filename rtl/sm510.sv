@@ -208,15 +208,21 @@ module sm510 (
   ////////////////////////////////////////////////////////////////////////////////////////
   // Stages
 
+  // SM510 | SM510 Tiger
+  wire is_sm510 = cpu_id == 0 || cpu_id == 5;
+
+  // SM5a
+  wire is_sm5a = cpu_id == 4;
+
   // LBL xy | TL/TML xyz
   wire is_two_bytes_sm510 = opcode == 8'h5F || opcode[7:4] == 4'h7;
 
   // LBL xy | CEND/DTA
   wire is_two_bytes_sm5a = opcode == 8'h5F || opcode == 8'h5E;
 
-  wire is_two_bytes = cpu_id == 4 ? is_two_bytes_sm5a : is_two_bytes_sm510;
+  wire is_two_bytes = is_sm5a ? is_two_bytes_sm5a : is_two_bytes_sm510;
   // TM x
-  wire is_tm = cpu_id == 0 && opcode[7:6] == 2'b11;
+  wire is_tm = is_sm510 && opcode[7:6] == 2'b11;
   // LAX x
   wire is_lax = opcode[7:4] == 4'h2;
 
@@ -514,6 +520,8 @@ module sm510 (
   // TODO: Is this correct, it doesn't match MAME?
   wire [11:0] pc_inc = {inst.Pu, inst.Pm, inst.Pl[0] == inst.Pl[1], inst.Pl[5:1]};
 
+  reg [11:0] last_pc  /* synthesis noprune */;
+
   always @(posedge clk) begin
     if (reset) begin
       // WARNING: Reset must be high for greater than one cycle so that data can cascade through
@@ -573,7 +581,13 @@ module sm510 (
           // SM5a
           inst.stored_output_r <= 4'hF;
 
+          inst.output_r_mask <= inst.R_MASK_DIRECT;
+
           inst.stack_s <= inst.pc;
+        end
+        5: begin
+          // SM510 Tiger
+          inst.output_r_mask <= inst.R_MASK_DIRECT;
         end
         default: begin
           // SM510
@@ -614,6 +628,8 @@ module sm510 (
         last_Pl <= inst.Pl;
       end
 
+      last_pc <= inst.pc;
+
       case (stage)
         STAGE_LOAD_PC: begin
           inst.skip_next_instr  <= 0;
@@ -637,7 +653,7 @@ module sm510 (
           // Load PC at 1_0_00
           case (cpu_id)
             4:       {inst.Pu, inst.Pm, inst.Pl} <= {2'b0, 4'b0, 6'b0};  // SM5a
-            default: {inst.Pu, inst.Pm, inst.Pl} <= {2'b1, 4'b0, 6'b0};  // SM510
+            default: {inst.Pu, inst.Pm, inst.Pl} <= {2'b1, 4'b0, 6'b0};  // SM510/SM510 Tiger
           endcase
 
           inst.cb_bank <= 0;
@@ -652,7 +668,7 @@ module sm510 (
 
           case (cpu_id)
             4: sm5a_decode();
-            default: sm510_decode();
+            default: sm510_decode();  // SM510/SM510 Tiger
           endcase
         end
         STAGE_PERF_3: begin
@@ -671,7 +687,7 @@ module sm510 (
             end
             8'h7X: begin
               // Only is TL/TML if SM510
-              if (cpu_id == 0) begin
+              if (is_sm510) begin
                 // This is weird and goes up to 0xA for some reason, so we need the nested checks
                 // Notice there is a gap where 0xB is not handled (in the actual CPU)
                 if (last_opcode[3:0] < 4'hB) begin

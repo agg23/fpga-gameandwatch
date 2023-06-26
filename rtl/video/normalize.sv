@@ -38,7 +38,7 @@ module normalize #(
         end
       end
       default: begin
-        // SM510
+        // SM510/SM510 Tiger
         for (y = 0; y < MAX_Y_SEGMENT; y += 1) begin
           segments[0][y][output_lcd_h_index] <= current_segment_a[y];
           segments[1][y][output_lcd_h_index] <= current_segment_b[y];

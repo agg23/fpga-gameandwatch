@@ -56,7 +56,7 @@ module ram (
         end
       end
       default: begin
-        // SM510
+        // SM510/SM510 Tiger
         computed_addr = addr;
       end
     endcase

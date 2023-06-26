@@ -28,7 +28,7 @@ module divider (
     if (reset) begin
       case (cpu_id)
         4:       gamma <= 1;  // SM5a
-        default: gamma <= 0;  // SM510
+        default: gamma <= 0;  // SM510/SM510 Tiger
       endcase
 
       divider <= 0;

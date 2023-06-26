@@ -47,7 +47,7 @@ module input_config (
         else if (output_r[3]) active_input_config = sys_config.input_s2_config;
       end
       default: begin
-        // SM510
+        // SM510/SM510 Tiger
         if (output_shifter_s[0]) active_input_config = sys_config.input_s0_config;
         else if (output_shifter_s[1]) active_input_config = sys_config.input_s1_config;
         else if (output_shifter_s[2]) active_input_config = sys_config.input_s2_config;
