@@ -204,7 +204,6 @@ fn correlate_id_to_title(contents: &String) -> HashMap<String, u16> {
     }
 
     let mut group_stack: Vec<ActiveGroup> = vec![];
-    // let mut active_group: Option<ActiveGroup> = None;
     let mut active_path: Option<ActivePath> = None;
     let mut inside_title = false;
 
@@ -284,7 +283,10 @@ fn correlate_id_to_title(contents: &String) -> HashMap<String, u16> {
                     panic!("SVG contains an invalid end group tag");
                 });
 
-                if let Some(title) = group.title {
+                if let Some(ancestor_or_self) = group_stack.iter().rev().find(|g| g.title.is_some())
+                {
+                    // Title is guaranteed by the above check
+                    let title = ancestor_or_self.title.unwrap();
                     // Group set a title
                     for p in &group.paths {
                         if !svg_id_to_title.contains_key(p) {
