@@ -4,7 +4,7 @@ A tool for converting MAME 0.250 (though older versions probably work) ROMs into
 
 ## Usage
 
-Download the latest version of the ROM Generator, and select the correct folder for your platform. You will want to open a terminal window (or Command Prompt on Windows) in this location.
+Visit [Releases](https://github.com/agg23/fpga-gameandwatch/releases) and download the latest version of the core by clicking on the file named `agg23...-Tools.zip`. Select the correct folder for your platform. You will want to open a terminal window (or Command Prompt on Windows) in this location.
 
 The tool has many options and features which you can explore by running:
 
