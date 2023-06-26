@@ -22,8 +22,10 @@
       "args": [
         "--mame-path",
         "/Users/adam/Downloads/Mame 252/",
+        "-o",
+        "${workspaceFolder}/ROMs",
         "specific",
-        "gnw_dkjr"
+        "tsfight2"
       ],
       "cwd": "${workspaceFolder}/support",
       "sourceLanguages": ["rust"]
