@@ -172,6 +172,7 @@ fn select_view(views: &mut HashMap<String, View>) -> Option<View> {
         "handheld layout",
         "external layout",
         "screen focus",
+        "unit only",
     ];
 
     for name in desired_names {
