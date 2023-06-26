@@ -1,5 +1,7 @@
 # Data
 
+Note: This document has not been edited and may contain inaccuracies. More information can be found in [Instructions](instructions.md).
+
 ## ROM
 
 Pages are arranged as 4 columns (`Pu`) with 10 values each (`Pm`). Pages contain 63 values indexed by `Pl`

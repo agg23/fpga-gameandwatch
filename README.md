@@ -10,18 +10,22 @@ Currently supported platforms are the Analogue Pocket and MiSTer.
 
 See [Platform Installation Instructions](docs/platform_installation.md) for platform-specific instructions on how to install the core.
 
-See [ROM Generator](docs/rom_generator.md) for information about generating the ROMs this core uses.
+## Generating ROMs
+
+A tool is provided to generate ROMs from MAME ROMs for all of the supported devices. See [ROM Generator](docs/rom_generator.md) for more information about generating the ROMs.
 
 ## Supported Systems
 
 The Game and Watch (and related) series of devices used varied hardware for each device. The currently supported CPUs are:
 * SM510 - The "base" CPU the other's were based off of - Donkey Kong, Fire Attack, Mickey and Donald, etc
+* SM510 (Tiger Variant) - Street Fighter 2, Double Dragon, etc
 * SM5a - Ball, Octopus, etc
 
-The [ROM Generator](docs/rom_generator.md) will read the attached `manifest.json` file to determine what CPU is used by each game. You can manually read this file yourself, or use the generator tool to determine if a game is supported at this time.
+The [ROM Generator](docs/rom_generator.md) will read the attached `manifest.json` file to determine what CPU is used by each game. You can manually look through this file yourself, or use the generator tool to determine if a game is supported at this time.
 
 ## Features
 
+* 720 x 720 pixel resolution
 * Deflicker on the LCD
 * VSync after the deflicker has taken place
 
@@ -31,7 +35,7 @@ The [ROM Generator](docs/rom_generator.md) will read the attached `manifest.json
 
 ## Core Docs
 
-I've tried to be thorough with my design decisions and provide/update various supporting documents through the process. See the `/docs` folder, or start looking at the [overview](docs/overview.md).
+I've tried to be thorough with my design decisions and provide/update various supporting documents through the process. See the `/docs` folder, or start looking at the [Overview](docs/overview.md).
 
 ## Licensing
 
