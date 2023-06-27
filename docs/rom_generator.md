@@ -4,7 +4,24 @@ A tool for converting MAME 0.250 (though older versions probably work) ROMs into
 
 ## Usage
 
-Visit [Releases](https://github.com/agg23/fpga-gameandwatch/releases) and download the latest version of the core by clicking on the file named `agg23...-Tools.zip`. Select the correct folder for your platform. You will want to open a terminal window (or Command Prompt on Windows) in this location.
+Place your `[artwork].zip` and `[rom].zip` MAME ROM files into your MAME folder, OR create a new folder, placing artwork in a folder called `artwork`, and ROMs in a folder called `roms`. Your file structure should look like this:
+
+```
+/MAME Folder/artwork/gnw_dkong.zip
+/MAME Folder/roms/gnw_dkong.zip
+```
+
+Visit [Releases](https://github.com/agg23/fpga-gameandwatch/releases) and download the latest version of the generator by clicking on the file named `agg23...-Tools.zip`. Select the correct folder for your platform. You will want to open a terminal window (or Command Prompt on Windows) in this location.
+
+**NOTE:** On macOS and Linux, you must mark the downloaded file as executable. Navigate to the folder containing `fpga-gnw-romwgenerator` in your terminal, and run:
+
+```
+chmod +x fpga-gnw-romwgenerator
+```
+
+This marks the file as being a program you can run.
+
+----
 
 The tool has many options and features which you can explore by running:
 
