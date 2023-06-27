@@ -1,15 +1,23 @@
-import { ROMName } from "./types";
-
 const ROM_REGION_REGEX_BUILDER = (name: string) =>
   new RegExp(`ROM_START\\(\\s*${name}\\s*\\)([\\s\\S]*?)ROM_END`);
 
 const ROM_DEFINITION_REGEX =
-  /ROM_REGION\(.*?,\s*"maincpu(:melody)?"\s*,.*?\)\s*ROM_LOAD\(\s*"(.*?)"/gi;
+  /ROM_REGION\(.*?,\s*"maincpu(:melody)?"\s*,.*?\)\s*ROM_LOAD\(\s*"(.*?)".*?SHA1\((.*?)\)/gi;
+
+type ROMSha = {
+  name: string;
+  sha: string;
+};
 
 export const parseRom = (
   content: string,
   deviceName: string
-): ROMName | undefined => {
+):
+  | {
+      rom: ROMSha;
+      melody: ROMSha | undefined;
+    }
+  | undefined => {
   const regex = ROM_REGION_REGEX_BUILDER(deviceName);
 
   const match = content.match(regex);
@@ -21,36 +29,40 @@ export const parseRom = (
 
   const body = match[1];
 
-  let melodyName: string | undefined = undefined;
-  let romName: string | undefined = undefined;
+  let melody: ROMSha | undefined = undefined;
+  let rom: ROMSha | undefined = undefined;
 
   for (const match of body.matchAll(ROM_DEFINITION_REGEX)) {
     const name = match[2];
+    const sha = match[3];
 
     if (match[1] == ":melody") {
-      if (!!melodyName) {
+      if (!!melody) {
         console.log(`Melody ROM name is already set for ${deviceName}`);
         return;
       }
 
-      melodyName = name;
+      melody = {
+        name,
+        sha,
+      };
     } else {
-      if (!!romName) {
+      if (!!rom) {
         console.log(`ROM name is already set for ${deviceName}`);
         return;
       }
 
-      romName = name;
+      rom = { name, sha };
     }
   }
 
-  if (!romName) {
+  if (!rom) {
     console.log(`Could not find ROM name for device ${deviceName}`);
     return;
   }
 
   return {
-    rom: romName!,
-    melody: melodyName,
+    rom,
+    melody,
   };
 };

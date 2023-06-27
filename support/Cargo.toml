@@ -10,12 +10,14 @@ bitvec = "1.0.1"
 clap = { version = "4.2.7", features = ["derive"] }
 colored = "2.0.0"
 guard = "0.5.1"
+hex = "0.4.3"
 image = { version = "0.24.6", features = ["png"] }
 rctree = "0.5.0"
 resvg = "0.32.0"
 serde = { version = "1.0", features = ["derive"] }
 serde-xml-rs = "0.6.0"
 serde_json = "1.0.96"
+sha1 = "0.10.5"
 svg = "0.13.1"
 tiny-skia-path = "0.9"
 zip = { version = "0.6", features = ["deflate"], default-features = false }

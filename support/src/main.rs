@@ -233,12 +233,12 @@ fn main() {
 
     for (name, platform) in platforms {
         platform_count += 1;
-        let temp_dir = temp_dir.join(name.clone());
+        let asset_dir = temp_dir.join(name.clone());
 
         println!("-------------------------");
         println!("Processing device {}\n", name.green());
 
-        if let Err(err) = get_assets(&name, &args.mame_path, &temp_dir) {
+        if let Err(err) = get_assets(&name, &platform.rom.rom_owner, &args.mame_path, &asset_dir) {
             if !installed {
                 // Only fail if we're not looking for only owned games
                 fail(name, err);
@@ -249,7 +249,7 @@ fn main() {
             continue;
         }
 
-        let layout = match parse_layout(&temp_dir, args.layout.as_ref()) {
+        let layout = match parse_layout(&asset_dir, args.layout.as_ref()) {
             Ok(layout) => layout,
             Err(err) => {
                 fail(name, err);
@@ -261,7 +261,7 @@ fn main() {
             background_bytes,
             mask_bytes,
             pixels_to_mask_id,
-        } = match render::render(&name, &layout, &platform.device, &temp_dir, args.debug) {
+        } = match render::render(&name, &layout, &platform.device, &asset_dir, args.debug) {
             Ok(data) => data,
             Err(err) => {
                 fail(name, err);
@@ -274,7 +274,7 @@ fn main() {
             mask_bytes.data(),
             pixels_to_mask_id.as_slice(),
             platform,
-            &temp_dir,
+            &asset_dir,
             &output_path,
         );
 

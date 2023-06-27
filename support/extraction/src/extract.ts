@@ -99,6 +99,11 @@ const run = () => {
     [name: string]: PlatformSpecification;
   } = {};
 
+  // Map from the SHA of the MAME ROM to the game name that "owns" it (it's named after)
+  const romShas: {
+    [romSha: string]: string[];
+  } = {};
+
   // TODO: These names are very messy
   for (const match of file.matchAll(CLASS_DEF_REGEX)) {
     const [classDef, className] = match;
@@ -151,6 +156,20 @@ const run = () => {
         continue;
       }
 
+      if (rom.rom.sha in romShas) {
+        romShas[rom.rom.sha].push(device);
+      } else {
+        romShas[rom.rom.sha] = [device];
+      }
+
+      if (rom.melody) {
+        if (rom.melody.sha in romShas) {
+          romShas[rom.melody.sha].push(device);
+        } else {
+          romShas[rom.melody.sha] = [device];
+        }
+      }
+
       consoles[device] = {
         device: preset,
         portMap: !!portMap
@@ -159,8 +178,24 @@ const run = () => {
               ports: [],
             },
         metadata: localMetadata,
-        rom,
+        rom: {
+          rom: rom.rom.name,
+          melody: rom.melody?.name,
+          romHash: rom.rom.sha,
+        },
       };
+    }
+  }
+
+  for (const romSha of Object.keys(romShas)) {
+    const games = romShas[romSha];
+
+    const rootGame = games[0];
+
+    for (let i = 1; i < games.length; i++) {
+      const game = games[i];
+
+      consoles[game].rom.romOwner = rootGame;
     }
   }
 

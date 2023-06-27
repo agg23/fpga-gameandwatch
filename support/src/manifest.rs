@@ -13,9 +13,12 @@ pub struct PlatformSpecification {
 /* ROM */
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ROMName {
     pub rom: String,
     pub melody: Option<String>,
+    pub rom_owner: Option<String>,
+    pub rom_hash: String,
 }
 
 /* Metdata */

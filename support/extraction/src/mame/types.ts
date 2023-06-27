@@ -58,6 +58,8 @@ export interface PlatformSpecification {
 export interface ROMName {
   rom: string;
   melody: string | undefined;
+  romOwner?: string;
+  romHash: string;
 }
 
 export interface Metadata {

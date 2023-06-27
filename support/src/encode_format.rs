@@ -1,5 +1,6 @@
 use std::{
-    fs,
+    fs::{self, File},
+    io::{self, Read},
     path::{Path, PathBuf},
 };
 
@@ -7,6 +8,8 @@ use bitvec::{
     field::BitField,
     prelude::{bitvec, Lsb0},
 };
+
+use sha1::{Digest, Sha1};
 
 use crate::{
     manifest::{Action, CPUType, NamedAction, PlatformSpecification, Port, Screen},
@@ -55,11 +58,14 @@ pub fn encode(
 
     // Add ROM
     // TODO: Add melody ROM
-    let rom_path = asset_dir.join(platform.rom.rom.clone());
+    let rom_path = asset_dir.join(&platform.rom.rom);
 
     let mut rom_data = match fs::read(&rom_path) {
         Ok(data) => Ok(data),
-        Err(_) => Err(format!("Could not open ROM {rom_path:?}")),
+        Err(_) => match find_rom_by_hash(&platform.rom.rom_hash, asset_dir) {
+            Ok(data) => Ok(data),
+            Err(err) => Err(format!("{err}\nCould not open ROM {rom_path:?}")),
+        },
     }?;
 
     config.append(&mut rom_data);
@@ -77,6 +83,36 @@ pub fn encode(
     fs::write(&output_path, config).unwrap();
 
     Ok(output_path)
+}
+
+fn find_rom_by_hash(target_hash: &String, asset_dir: &Path) -> Result<Vec<u8>, String> {
+    for entry in fs::read_dir(asset_dir).expect("Could not open temp directory") {
+        if let Ok(entry) = entry {
+            let mut file = match File::open(entry.path()) {
+                Ok(file) => file,
+                Err(_) => continue,
+            };
+            let mut hasher = Sha1::new();
+            let _ = match io::copy(&mut file, &mut hasher) {
+                Ok(_) => {}
+                Err(_) => continue,
+            };
+            let hash = hasher.finalize();
+
+            let hash = hex::encode(hash);
+
+            if &hash == target_hash {
+                let mut buffer = Vec::new();
+                if let Err(_) = file.read_to_end(&mut buffer) {
+                    return Err(format!("Could not open SHA matched ROM {:?}", entry.path()));
+                }
+
+                return Ok(buffer);
+            }
+        }
+    }
+
+    Err(format!("No SHA matched ROM found"))
 }
 
 fn build_config(platform: &PlatformSpecification) -> Result<Vec<u8>, String> {
