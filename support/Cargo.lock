@@ -490,9 +490,9 @@ dependencies = [
 
 [[package]]
 name = "guard"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff893cc51ea04f8a3b73fbaf4376c06ebc5a0ccbe86d460896f805d9417c93ea"
+checksum = "7d7402bc4451b9f3cc9a2467bb2faf3ad01b129ae9f47f9943a24ad7a2064d84"
 
 [[package]]
 name = "half"
