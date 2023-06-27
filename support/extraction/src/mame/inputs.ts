@@ -180,9 +180,9 @@ export const parseInputs = (
     })
     .sort((a, b) => {
       const portIndex = (port: Port): number => {
-        switch (a.type) {
+        switch (port.type) {
           case "s":
-            return a.index;
+            return port.index;
           // S takes 0-7, start at 8
           case "b":
             return 8;
@@ -212,6 +212,7 @@ export const collapseInputs = (ports: {
   } = {};
 
   for (const [deviceName, port] of Object.entries(ports)) {
+    let outputPort: PlatformPortMapping;
     if (port.include) {
       const flatPortMap: {
         [id: string]: Port;
@@ -271,13 +272,33 @@ export const collapseInputs = (ports: {
         }
       }
 
-      collapsedPorts[deviceName] = {
+      outputPort = {
         ...port,
         ports: [...Object.values(flatPortMap)],
       };
     } else {
-      collapsedPorts[deviceName] = port;
+      outputPort = port;
     }
+
+    const sortedPorts = outputPort.ports.sort((a, b) => {
+      const portIndex = (port: Port): number => {
+        switch (port.type) {
+          case "s":
+            return port.index;
+          // S takes 0-7, start at 8
+          case "b":
+            return 8;
+          case "ba":
+            return 9;
+          case "acl":
+            return 10;
+        }
+      };
+
+      return portIndex(a) - portIndex(b);
+    });
+
+    collapsedPorts[deviceName] = { ...outputPort, ports: sortedPorts };
   }
 
   return collapsedPorts;

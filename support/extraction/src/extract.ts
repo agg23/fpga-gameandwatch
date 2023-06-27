@@ -66,8 +66,17 @@ const run = () => {
 
     const portMap = parseInputs(body, name);
 
+    ports[name] = portMap;
+  }
+
+  ports = collapseInputs(ports);
+
+  // Add grounded ports
+  for (const deviceName of Object.keys(ports)) {
+    const portMap = ports[deviceName];
+
     const constructorMatch = file.match(
-      PUBLIC_CONSTRUCTOR_REGEX_BUILDER(`${name}_state`)
+      PUBLIC_CONSTRUCTOR_REGEX_BUILDER(`${deviceName}_state`)
     );
 
     if (constructorMatch) {
@@ -89,11 +98,7 @@ const run = () => {
         }
       }
     }
-
-    ports[name] = portMap;
   }
-
-  ports = collapseInputs(ports);
 
   const consoles: {
     [name: string]: PlatformSpecification;
