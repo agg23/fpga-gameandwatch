@@ -24,7 +24,7 @@ module rom_tb;
 
       .reset(reset),
 
-      .cpu_id(4),
+      .cpu_id(0),
 
       .rom_data(rom_data),
       .rom_addr(rom_addr),
@@ -64,6 +64,7 @@ module rom_tb;
   reg press_game_a = 0;
   reg press_game_b = 0;
   reg press_dpad_up = 0;
+  reg press_dpad_right = 0;
 
   always_comb begin
     input_k = 0;
@@ -85,8 +86,26 @@ module rom_tb;
     //   input_k |= press_game_a ? 4'h4 : 0;
     // end
 
-    if (output_r[3]) begin
-      input_k |= press_game_a ? 4'h4 : 0;
+    // Octopus/Egg
+    // if (output_r[3]) begin
+    //   input_k |= press_game_a ? 4'h4 : 0;
+    // end
+
+    // if (shifter_s[1]) begin
+    //   input_k |= press_game_a ? 4'h2 : 0;
+    // end
+
+    // Double Dragon
+    // if (shifter_s[5]) begin
+    //   input_k |= press_game_a ? 4'h8 : 0;
+    // end
+
+    if (shifter_s[0]) begin
+      input_k |= press_dpad_right ? 4'h2 : 0;
+    end
+
+    if (shifter_s[1]) begin
+      input_k |= press_game_a ? 4'h2 : 0;
     end
   end
 
@@ -94,7 +113,10 @@ module rom_tb;
   // initial $readmemh("cement.hex", rom);
   // initial $readmemh("dkjr.hex", rom);
   // initial $readmemh("octopus.hex", rom);
-  initial $readmemh("egg.hex", rom);
+  // initial $readmemh("egg.hex", rom);
+  initial $readmemh("tfish.hex", rom);
+  // initial $readmemh("tsfight2.hex", rom);
+  // initial $readmemh("tddragon.hex", rom);
 
   initial begin
     // Initialize RAM
@@ -105,14 +127,19 @@ module rom_tb;
   end
 
   reg [11:0] last_pc;
-  integer fd;
+  integer fd = 0;
   integer step_count;
 
   task log();
-    $fwrite(fd, "pc=%h, acc=%h, carry=%d, bm=%h, bl=%h, ram=%h, shifter_w=%h, gamma=%0d, div=%h\n",
-            last_pc, cpu_uut.inst.Acc, cpu_uut.inst.carry, cpu_uut.inst.Bm, cpu_uut.inst.Bl,
-            cpu_uut.ram.ram[cpu_uut.ram.computed_addr()], cpu_uut.inst.shifter_w,
-            cpu_uut.inst.gamma, cpu_uut.div.divider);
+    // ram=%h, cpu_uut.ram.ram[cpu_uut.ram.computed_addr()],
+    if (fd != 0) begin
+      $fwrite(
+          fd,
+          "pc=%h, acc=%h, carry=%d, bm=%h, bl=%h, ram=%h, shifter_w=%h, k=%h, gamma=%0d, div=%h\n",
+          last_pc, cpu_uut.inst.Acc, cpu_uut.inst.carry, cpu_uut.inst.Bm, cpu_uut.inst.Bl,
+          cpu_uut.ram.ram[cpu_uut.ram.computed_addr()], cpu_uut.inst.shifter_w, cpu_uut.input_k,
+          cpu_uut.inst.gamma, cpu_uut.div.divider);
+    end
   endtask
 
   initial begin
@@ -121,7 +148,7 @@ module rom_tb;
 
     step_count = 0;
 
-    fd = $fopen("log.txt", "w");
+    // fd = $fopen("log.txt", "w");
 
     reset = 1;
 
@@ -188,17 +215,54 @@ module rom_tb;
       //   $finish();
       // end
 
+      // if (step_count == 32'h8000) begin
+      //   // Enable Game A
+      //   press_game_a = 1;
+      //   $fwrite(fd, "Pressing A\n");
+      // end else if (step_count == 32'h8000 + 32'h800) begin
+      //   // Disable Game A
+      //   press_game_a = 0;
+      //   $fwrite(fd, "Releasing A\n");
+      // end else if (step_count == 32'h8000 + 32'h800 + 32'h4E20) begin
+      //   $stop();
+      // end
+
+      // TFish
       if (step_count == 32'h8000) begin
-        // Enable Game A
+        press_game_a = 1;
+      end else if (step_count == 32'h8000 + 32'h800) begin
+        press_game_a = 0;
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000) begin
+        fd = $fopen("log.txt", "w");
+        press_dpad_right = 1;
+        $fwrite(fd, "Pressing right\n");
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000) begin
+        press_dpad_right = 0;
+        $fwrite(fd, "Releasing right\n");
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000 + 32'h8000) begin
         press_game_a = 1;
         $fwrite(fd, "Pressing A\n");
-      end else if (step_count == 32'h8000 + 32'h800) begin
-        // Disable Game A
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000 + 32'h8000 + 32'h8000) begin
         press_game_a = 0;
         $fwrite(fd, "Releasing A\n");
-      end else if (step_count == 32'h8000 + 32'h800 + 32'h4E20) begin
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000 + 32'h8000 + 32'h8000 + 32'h8000) begin
         $stop();
       end
+      // if (step_count == 32'h8000) begin
+      //   press_dpad_right = 1;
+      //   $fwrite(fd, "Pressing right\n");
+      // end else if (step_count == 32'h8000 + 32'h800) begin
+      //   press_game_a = 1;
+      //   $fwrite(fd, "Pressing A\n");
+      // end else if (step_count == 32'h8000 + 32'h800 + 32'h800) begin
+      //   press_game_a = 0;
+      //   $fwrite(fd, "Releasing A\n");
+      // end else if (step_count == 32'h8000 + 32'h800 + 32'h800 + 32'h800) begin
+      //   press_dpad_right = 0;
+      //   $fwrite(fd, "Releasing right\n");
+      // end else if (step_count == 32'h8000 + 32'h800 + 32'h800 + 32'h800 + 32'h4E20) begin
+      //   $stop();
+      // end
     end
   end
 

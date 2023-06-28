@@ -240,10 +240,11 @@ fn build_config(platform: &PlatformSpecification) -> Result<Vec<u8>, String> {
     config.push(acl_port);
 
     let ground_index = if let Some(ground_last_index) = platform.port_map.ground_last_index {
-        ground_last_index
+        // Indexes start at 1
+        ground_last_index + 1
     } else {
         // Unset
-        0xFF
+        0
     };
 
     config.push(ground_index);

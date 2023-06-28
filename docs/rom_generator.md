@@ -1,6 +1,6 @@
 # ROM Generator
 
-A tool for converting MAME 0.250 (though older versions probably work) ROMs into ROMs suitable for FPGAs, and particularly this core.
+A tool for converting MAME 0.250 (though older and newer versions probably work) ROMs into ROMs suitable for FPGAs, and particularly this core.
 
 ## Usage
 

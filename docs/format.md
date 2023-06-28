@@ -56,7 +56,7 @@ The `unused`/unset controller byte is assigned `0x7F` for clarity.
 
 NOTE: These won't all be addressable given a normal input scheme, given the limited number of buttons on controllers.
 
-The grounded input port is `0xFF` when unset, and the 0-based index otherwise.
+The grounded input port is 0 when unset, and the 1-based index otherwise (so `"groundLastIndex": 0` implies a format value of 1).
 
 | Input Name              | Config Value |
 | ----------------------- | ------------ |

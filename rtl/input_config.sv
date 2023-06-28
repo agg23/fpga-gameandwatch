@@ -34,11 +34,6 @@ module input_config (
 );
   localparam INACTIVE_CONFIG_ROW = 32'h7F7F_7F7F;
 
-  // Comb
-  reg [31:0] active_input_config;
-  // Always active config
-  reg [31:0] grounded_input_config;
-
   function [31:0] s_config_by_index(reg [2:0] index);
     case (index)
       0: return sys_config.input_s0_config;
@@ -51,38 +46,6 @@ module input_config (
       7: return sys_config.input_s7_config;
     endcase
   endfunction
-
-  always_comb begin
-    active_input_config   = sys_config.input_s0_config;
-    grounded_input_config = INACTIVE_CONFIG_ROW;
-
-    case (cpu_id)
-      4: begin
-        // SM5a
-        if (output_r[1]) active_input_config = sys_config.input_s0_config;
-        else if (output_r[2]) active_input_config = sys_config.input_s1_config;
-        else if (output_r[3]) active_input_config = sys_config.input_s2_config;
-      end
-      default: begin
-        // SM510/SM510 Tiger
-        if (output_shifter_s[0]) active_input_config = sys_config.input_s0_config;
-        else if (output_shifter_s[1]) active_input_config = sys_config.input_s1_config;
-        else if (output_shifter_s[2]) active_input_config = sys_config.input_s2_config;
-        else if (output_shifter_s[3]) active_input_config = sys_config.input_s3_config;
-        else if (output_shifter_s[4]) active_input_config = sys_config.input_s4_config;
-        else if (output_shifter_s[5]) active_input_config = sys_config.input_s5_config;
-        else if (output_shifter_s[6]) active_input_config = sys_config.input_s6_config;
-        else if (output_shifter_s[7]) active_input_config = sys_config.input_s7_config;
-
-        if (sys_config.grounded_port_config[3]) begin
-          // Disabled
-          grounded_input_config = INACTIVE_CONFIG_ROW;
-        end else begin
-          grounded_input_config = s_config_by_index(sys_config.grounded_port_config[2:0]);
-        end
-      end
-    endcase
-  end
 
   // Map from config value to control
   function input_mux([7:0] config_value);
@@ -133,16 +96,62 @@ module input_config (
     return config_value[7] ? ~out : out;
   endfunction
 
-  always @(posedge clk) begin
-    reg [31:0] main_input_k;
-    reg [31:0] grounded_input_k;
-
-    main_input_k = {
-      input_mux(active_input_config[31:24]),
-      input_mux(active_input_config[23:16]),
-      input_mux(active_input_config[15:8]),
-      input_mux(active_input_config[7:0])
+  function [3:0] build_k([31:0] input_config);
+    return {
+      input_mux(input_config[31:24]),
+      input_mux(input_config[23:16]),
+      input_mux(input_config[15:8]),
+      input_mux(input_config[7:0])
     };
+  endfunction
+
+  // Always active config
+  reg [31:0] grounded_input_config = INACTIVE_CONFIG_ROW;
+
+  reg [ 3:0] main_input_k = 0;
+
+  always @(posedge clk) begin
+    reg [3:0] temp_k;
+
+    temp_k = 0;
+
+    grounded_input_config <= INACTIVE_CONFIG_ROW;
+
+    case (cpu_id)
+      4: begin
+        // SM5a
+        if (output_r[1]) temp_k = build_k(sys_config.input_s0_config);
+        if (output_r[2]) temp_k = temp_k | build_k(sys_config.input_s1_config);
+        if (output_r[3]) temp_k = temp_k | build_k(sys_config.input_s2_config);
+      end
+      default: begin
+        // SM510/SM510 Tiger
+        if (output_shifter_s[0]) temp_k = build_k(sys_config.input_s0_config);
+        if (output_shifter_s[1]) temp_k = temp_k | build_k(sys_config.input_s1_config);
+        if (output_shifter_s[2]) temp_k = temp_k | build_k(sys_config.input_s2_config);
+        if (output_shifter_s[3]) temp_k = temp_k | build_k(sys_config.input_s3_config);
+        if (output_shifter_s[4]) temp_k = temp_k | build_k(sys_config.input_s4_config);
+        if (output_shifter_s[5]) temp_k = temp_k | build_k(sys_config.input_s5_config);
+        if (output_shifter_s[6]) temp_k = temp_k | build_k(sys_config.input_s6_config);
+        if (output_shifter_s[7]) temp_k = temp_k | build_k(sys_config.input_s7_config);
+
+        if (sys_config.grounded_port_config == 32'h0) begin
+          // Disabled
+          grounded_input_config <= INACTIVE_CONFIG_ROW;
+        end else begin
+          reg [3:0] temp;
+          temp = sys_config.grounded_port_config[3:0] - 4'h1;
+
+          grounded_input_config <= s_config_by_index(temp[2:0]);
+        end
+      end
+    endcase
+
+    main_input_k <= temp_k;
+  end
+
+  always @(posedge clk) begin
+    reg [3:0] grounded_input_k;
 
     grounded_input_k = {
       input_mux(grounded_input_config[31:24]),

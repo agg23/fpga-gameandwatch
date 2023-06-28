@@ -80,9 +80,9 @@ Replace with empty string:
 
 ```
 ^([0-9]+\s* 0 )
-(.*[0-9]  0\s*)$\n
+(.*0\s*)$\n
 h
-( [0-9]  [0-9]\s*)$
+( [0-9]\s*)$
 ```
 
 Replacement listed:
