@@ -265,7 +265,7 @@ fn main() {
             Ok(data) => data,
             Err(err) => {
                 fail(name, err);
-                return;
+                continue;
             }
         };
 

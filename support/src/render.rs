@@ -164,11 +164,6 @@ pub fn render(
     let mut background_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
     let mut mask_pixmap = Pixmap::new(WIDTH as u32, HEIGHT as u32).unwrap();
 
-    // Default background to white
-    for pixel in background_pixmap.pixels_mut() {
-        *pixel = PremultipliedColorU8::from_rgba(255, 255, 255, 255).unwrap();
-    }
-
     // We currently ignore offsetting by X/Y at the parent view, so the child positions are subtracted
     // from the parent's offset
     for item in &filtered_items {
@@ -181,8 +176,7 @@ pub fn render(
                 // A bug in either tiny_skia or image prevents transparency from working correctly when imported
                 // through image, so we import in tiny_skia and convert
                 guard!(let Ok(image) = Pixmap::load_png(&file_path) else {
-                    println!("Ignoring element asset {} which was not at {file_path:?}", element.ref_name);
-                    continue;
+                    return Err(format!("Missing element asset \"{}\" which was not at {file_path:?}", element.ref_name));
                 });
 
                 let image = ImageBuffer::<Rgba<u8>, Vec<u8>>::from_vec(
