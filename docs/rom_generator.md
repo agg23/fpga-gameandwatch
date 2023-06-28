@@ -4,6 +4,10 @@ A tool for converting MAME 0.250 (though older versions probably work) ROMs into
 
 ## Usage
 
+random11 has created a full tutorial (with a Windows focus) walking you through each of these steps. [Take a look](https://github.com/random11x/agg23-fpga-gameandwatch-hand-hold-guide/).
+
+----
+
 Place your `[artwork].zip` and `[rom].zip` MAME ROM files into your MAME folder, OR create a new folder, placing artwork in a folder called `artwork`, and ROMs in a folder called `roms`. Your file structure should look like this:
 
 ```
