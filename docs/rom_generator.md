@@ -17,10 +17,10 @@ Place your `[artwork].zip` and `[rom].zip` MAME ROM files into your MAME folder,
 
 Visit [Releases](https://github.com/agg23/fpga-gameandwatch/releases) and download the latest version of the generator by clicking on the file named `agg23...-Tools.zip`. Select the correct folder for your platform. You will want to open a terminal window (or Command Prompt on Windows) in this location.
 
-**NOTE:** On macOS and Linux, you must mark the downloaded file as executable. Navigate to the folder containing `fpga-gnw-romwgenerator` in your terminal, and run:
+**NOTE:** On macOS and Linux, you must mark the downloaded file as executable. Navigate to the folder containing `fpga-gnw-romgenerator` in your terminal, and run:
 
 ```
-chmod +x fpga-gnw-romwgenerator
+chmod +x fpga-gnw-romgenerator
 ```
 
 This marks the file as being a program you can run.
@@ -30,13 +30,13 @@ This marks the file as being a program you can run.
 The tool has many options and features which you can explore by running:
 
 ```
-fpga-gnw-romwgenerator --help
+fpga-gnw-romgenerator --help
 ```
 
 But most users will just want to generate any supported, installed ROMs they have, which you can do by running:
 
 ```
-fpga-gnw-romwgenerator --mame-path [MAME path] --output-path [Output ROM path] supported
+fpga-gnw-romgenerator --mame-path [MAME path] --output-path [Output ROM path] supported
 ```
 
 Make sure to replace the brackets with the actual paths to your files. The MAME path should be the folder that contains the `artwork` and `roms` folders.
