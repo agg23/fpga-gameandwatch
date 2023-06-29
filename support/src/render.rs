@@ -6,7 +6,7 @@ use tiny_skia_path::Transform;
 
 use crate::{
     layout::{Bounds, Element, Screen, View, ViewElement},
-    manifest::{self, PresetDefinition},
+    manifest::{self, PlatformSpecification, PresetDefinition},
     svg_manage::build_svg,
     HEIGHT, WIDTH,
 };
@@ -20,7 +20,7 @@ pub struct RenderedData {
 pub fn render(
     platform_name: &str,
     layout: &View,
-    platform: &PresetDefinition,
+    platform: &PlatformSpecification,
     asset_dir: &Path,
     debug: bool,
 ) -> Result<RenderedData, String> {
@@ -268,8 +268,16 @@ pub fn render(
                 let file_path = asset_dir.join("foo").with_file_name(screen_filename(
                     screen.index as usize,
                     platform_name,
-                    platform,
+                    &platform.device,
                 ));
+
+                let alternate_file_path = platform.rom.rom_owner.as_ref().and_then(|parent| {
+                    Some(asset_dir.join("foo").with_file_name(screen_filename(
+                        screen.index as usize,
+                        &parent,
+                        &platform.device,
+                    )))
+                });
 
                 let bounds = screen.bounds.to_xy();
 
@@ -299,7 +307,7 @@ pub fn render(
 
                 // TODO: We don't really have a way to scale SVGs that won't result in a quality loss
                 // so that isn't handled here
-                let rendered_svg = build_svg(&file_path, &dimensions);
+                let rendered_svg = build_svg(&file_path, &alternate_file_path, &dimensions)?;
 
                 // Draw actual LCD pixels
                 mask_pixmap.draw_pixmap(

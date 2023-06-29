@@ -101,13 +101,15 @@ struct Args {
 
     #[arg(short = 'r', long)]
     /// Filter to Tronica games
-    /// Includes in addition to other specified filters
     tronica: bool,
 
     #[arg(short, long)]
     /// Filter to VTech games
-    /// Includes in addition to other specified filters
     vtech: bool,
+
+    #[arg(short = 'b', long)]
+    /// Filter to Homebrew games
+    homebrew: bool,
 }
 
 fn main() {
@@ -155,6 +157,10 @@ fn main() {
 
         if args.vtech {
             filter.push("vtech");
+        }
+
+        if args.homebrew {
+            filter.push("homebrew");
         }
 
         filter
@@ -266,7 +272,7 @@ fn main() {
             background_bytes,
             mask_bytes,
             pixels_to_mask_id,
-        } = match render::render(&name, &layout, &platform.device, &asset_dir, args.debug) {
+        } = match render::render(&name, &layout, &platform, &asset_dir, args.debug) {
             Ok(data) => data,
             Err(err) => {
                 fail(name, err);

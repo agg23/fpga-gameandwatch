@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fs,
-    path::Path,
+    path::PathBuf,
 };
 
 use resvg::{
@@ -21,9 +21,26 @@ pub struct RenderedSVG {
     pub pixel_pos_to_id: Vec<Option<u16>>,
 }
 
-pub fn build_svg(svg_path: &Path, dimensions: &ImageDimensions) -> RenderedSVG {
+pub fn build_svg(
+    svg_path: &PathBuf,
+    alternate_svg_path: &Option<PathBuf>,
+    dimensions: &ImageDimensions,
+) -> Result<RenderedSVG, String> {
     // Actual SVG ID (so `path123`) to title field (the segment ID)
-    let contents = fs::read_to_string(svg_path).expect("Could not open SVG");
+    let svg_error = |path: &PathBuf| format!("Could not load SVG at {path:?}");
+
+    let contents = if let Ok(contents) = fs::read_to_string(svg_path) {
+        contents
+    } else if let Some(path) = alternate_svg_path {
+        if let Ok(contents) = fs::read_to_string(path) {
+            contents
+        } else {
+            return Err(svg_error(svg_path));
+        }
+    } else {
+        return Err(svg_error(svg_path));
+    };
+
     let svg_id_to_title = correlate_id_to_title(&contents);
 
     let tree = usvg::Tree::from_str(&contents, &usvg::Options::default()).unwrap();
@@ -137,10 +154,10 @@ pub fn build_svg(svg_path: &Path, dimensions: &ImageDimensions) -> RenderedSVG {
         None,
     );
 
-    RenderedSVG {
+    Ok(RenderedSVG {
         pixmap: mask_pixmap,
         pixel_pos_to_id,
-    }
+    })
 }
 
 fn parse_title(title: &str) -> Option<u16> {

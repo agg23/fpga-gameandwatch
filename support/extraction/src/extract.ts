@@ -31,6 +31,11 @@ const INSTANCE_CONSTRUCTOR_REGEX_BUILDER = (
     `void\\s+${stateName}::${deviceName}\\(\\s*machine_config\\s+&\\s*config\\s*\\)\\s*{\\s*([\\s\\S]*?)\\s+}`
   );
 
+const homebrewTitles = {
+  hbw_bride: { game: "gnw_dkjr", name: "Bride", year: "2018" },
+  hbw_sqeeze: { game: "gnw_mickdon", name: "Squeeze", year: "2018" },
+};
+
 // This tool is constructed out of ad-hoc regex instead of being a clear "select block of a single platform and parse"
 // because the MAME code isn't really laid out in a nice way to do that. So we do the next best thing
 const run = () => {
@@ -210,6 +215,33 @@ const run = () => {
 
       consoles[game].rom.romOwner = rootGame;
     }
+  }
+
+  // Homebrew pass
+  for (const [homebrewTitle, { game: mameTitle, name, year }] of Object.entries(
+    homebrewTitles
+  )) {
+    const existingConfig = consoles[mameTitle];
+
+    if (!existingConfig) {
+      console.log(
+        `Could not find title entry "${mameTitle}" for homebrew ${homebrewTitle}`
+      );
+      continue;
+    }
+
+    const homebrewConfig = structuredClone(existingConfig);
+
+    homebrewConfig.rom.romOwner = homebrewConfig.rom.romOwner ?? mameTitle;
+    homebrewConfig.portMap.include =
+      homebrewConfig.portMap.include ?? mameTitle;
+    homebrewConfig.metadata = {
+      year,
+      company: "Homebrew",
+      name,
+    };
+
+    consoles[homebrewTitle] = homebrewConfig;
   }
 
   writeFileSync("manifest.json", JSON.stringify(consoles, undefined, 4));
