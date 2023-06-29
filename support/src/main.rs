@@ -226,7 +226,7 @@ fn main() {
 
     let mut fail = |name: &String, message: String| {
         println!("{message}");
-        println!("{}", format!("Skipping device {name}\n").red());
+        println!("{}", format!("Failing device {name}\n").red());
 
         fail_count += 1;
     };
@@ -243,7 +243,12 @@ fn main() {
                 // Only fail if we're not looking for only owned games
                 fail(name, err);
             } else {
-                println!("Skipping device {name}: Not installed\n");
+                // See `fail` above
+                println!("{err}");
+                println!(
+                    "{}",
+                    format!("Skipping device {name}: Not installed\n").red()
+                );
                 skip_count += 1;
             }
             continue;

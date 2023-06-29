@@ -56,7 +56,13 @@ pub fn get_assets(
 
 fn extract_path(file_path: &Path, outdir: &Path, data_type: &str) -> Result<(), String> {
     guard!(let Ok(zip_file) = File::open(file_path) else {
-        return Err(format!("Could not open expected {data_type} file at {file_path:?}"));
+        let name = if let Some(name) = file_path.file_name() {
+            format!(" ({name:?})")
+        } else {
+            "".to_string()
+        };
+
+        return Err(format!("Could not open expected {data_type} file{name} at {file_path:?}"));
     });
 
     guard!(let Ok(mut archive) = ZipArchive::new(zip_file) else {
