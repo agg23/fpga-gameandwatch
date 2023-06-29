@@ -122,6 +122,14 @@ const run = () => {
       ? className.slice(0, -6)
       : className;
 
+    subdevices.sort((a, _) => {
+      if (a === stateName) {
+        return -1;
+      } else {
+        return 0;
+      }
+    });
+
     // Find the actual constructors
     for (const device of subdevices) {
       // Setup inputs
