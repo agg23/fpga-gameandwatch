@@ -114,8 +114,17 @@ module input_config (
     reg [3:0] temp_k;
 
     temp_k = 0;
-
     grounded_input_config <= INACTIVE_CONFIG_ROW;
+
+    if (sys_config.grounded_port_config == 4'h0) begin
+      // Disabled
+      grounded_input_config <= INACTIVE_CONFIG_ROW;
+    end else begin
+      reg [3:0] temp;
+      temp = sys_config.grounded_port_config - 4'h1;
+
+      grounded_input_config <= s_config_by_index(temp[2:0]);
+    end
 
     case (cpu_id)
       4: begin
@@ -134,16 +143,6 @@ module input_config (
         if (output_shifter_s[5]) temp_k = temp_k | build_k(sys_config.input_s5_config);
         if (output_shifter_s[6]) temp_k = temp_k | build_k(sys_config.input_s6_config);
         if (output_shifter_s[7]) temp_k = temp_k | build_k(sys_config.input_s7_config);
-
-        if (sys_config.grounded_port_config == 32'h0) begin
-          // Disabled
-          grounded_input_config <= INACTIVE_CONFIG_ROW;
-        end else begin
-          reg [3:0] temp;
-          temp = sys_config.grounded_port_config[3:0] - 4'h1;
-
-          grounded_input_config <= s_config_by_index(temp[2:0]);
-        end
       end
     endcase
 
