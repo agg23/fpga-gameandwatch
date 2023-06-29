@@ -12,6 +12,7 @@ First bit is version. Spec V1 is as follows:
 0x0: [version 8 bits (01)][mpu 8 bits][screen configuration 8 bits][screen width|screen height 24 bits][reserved 16 bits]
 0x8: input mapping 40 bytes - [s0 config 4 bytes][s1 config 4 bytes] ... [s7 config 4 bytes][b config 1 byte][ba config 1 byte][acl config 1 byte][grounded port index 1 byte][reserved 4 bytes]
 0x30: Start of reserved space - This is reserved for future functionality
+0x79: [generator tool commit (ascii) 7 bytes]
 0x80: Start of byte interleaved images
 0x17BB80: [mask config 0x2DB40 bytes] End of images, start of mask config
 0x1A96C0: ROM data

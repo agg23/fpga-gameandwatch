@@ -255,9 +255,22 @@ fn build_config(platform: &PlatformSpecification) -> Result<Vec<u8>, String> {
     }
 
     // Reserved space
-    for _ in 0..0xD0 {
+    for _ in 0..0xC9 {
         config.push(0);
     }
+
+    let sha = env!("VERGEN_GIT_SHA");
+
+    if sha.len() < 1 {
+        println!("Unknown git SHA");
+
+        vec![0 as u8; 7].iter().for_each(|c| config.push(*c));
+    } else {
+        sha.chars()
+            .take(7)
+            .map(|c| c as u8)
+            .for_each(|c| config.push(c));
+    };
 
     Ok(config)
 }

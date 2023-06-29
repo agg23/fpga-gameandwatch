@@ -3,6 +3,8 @@ name = "fpga-gnw-romgenerator"
 version = "0.1.0"
 edition = "2021"
 
+build = "build.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -21,3 +23,6 @@ sha1 = "0.10.5"
 svg = "0.13.1"
 tiny-skia-path = "0.9"
 zip = { version = "0.6", features = ["deflate"], default-features = false }
+
+[build-dependencies]
+vergen = { version = "8.2.1", features = ["git", "gitcl"] }
