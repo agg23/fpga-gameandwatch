@@ -29,8 +29,8 @@ pub struct View {
 pub enum ViewElement {
     Bounds(CompleteBounds),
     #[serde(alias = "bezel")]
-    #[serde(alias = "overlay")]
     Element(Element),
+    Overlay(Element),
     Screen(Screen),
 }
 
@@ -117,7 +117,7 @@ pub struct Element {
     pub blend: Option<BlendType>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(PartialEq, Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum BlendType {
     Add,
@@ -134,9 +134,19 @@ pub struct Screen {
 
 pub fn parse_layout(temp_dir: &Path, specified_layout: Option<&String>) -> Result<View, String> {
     let layout_path = temp_dir.join("default.lay");
-    let layout_file = fs::read(layout_path).unwrap();
+    let layout_file = match fs::read(&layout_path) {
+        Ok(layout_file) => layout_file,
+        Err(_) => {
+            return Err(format!(
+                "Could not find default.lay file at path {layout_path:?}"
+            ))
+        }
+    };
 
-    let output: MameLayout = serde_xml_rs::from_reader(layout_file.as_slice()).unwrap();
+    let output: MameLayout = match serde_xml_rs::from_reader(layout_file.as_slice()) {
+        Ok(output) => output,
+        Err(err) => return Err(format!("Could not parse layout: \"{err}\"")),
+    };
 
     let mut map = HashMap::<String, View>::new();
 

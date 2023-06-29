@@ -5,7 +5,7 @@ use resvg::tiny_skia::{Pixmap, PixmapPaint, PremultipliedColorU8};
 use tiny_skia_path::Transform;
 
 use crate::{
-    layout::{Bounds, Element, Screen, View, ViewElement},
+    layout::{BlendType, Bounds, Element, Screen, View, ViewElement},
     manifest::{self, PlatformSpecification, PresetDefinition},
     svg_manage::build_svg,
     HEIGHT, WIDTH,
@@ -46,7 +46,7 @@ pub fn render(
                 }
                 view_bounds = Some(bounds.to_xy());
             }
-            ViewElement::Element(element) => {
+            ViewElement::Element(element) | ViewElement::Overlay(element) => {
                 if already_applied_refs.contains(&element.ref_name) {
                     continue;
                 }
@@ -168,7 +168,7 @@ pub fn render(
     // from the parent's offset
     for item in &filtered_items {
         match item {
-            ViewElement::Element(element) => {
+            ViewElement::Element(element) | ViewElement::Overlay(element) => {
                 let file_path = asset_dir
                     .join("foo")
                     .with_file_name(format!("{}.png", element.ref_name));
@@ -241,26 +241,47 @@ pub fn render(
                     None,
                 );
 
+                let blend = if let ViewElement::Overlay(_) = item {
+                    Some(&BlendType::Multiply)
+                } else {
+                    element.blend.as_ref()
+                };
+
+                let blend_func = match blend {
+                    Some(BlendType::Add) | Some(BlendType::Alpha) | None => alpha_blend_colors,
+                    Some(BlendType::Multiply) => multiply_blend_colors,
+                };
+
+                let white_pixel = PremultipliedColorU8::from_rgba(255, 255, 255, 255).unwrap();
+
                 // We have to go pixel by pixel and check if they're in the mask
                 let pixels = aligned_image_pixmap.pixels();
+                let mask_pixels = mask_pixmap.pixels_mut();
+                let background_pixels = background_pixmap.pixels_mut();
                 for i in 0..WIDTH * HEIGHT {
                     let pixel = pixels[i];
                     if pixel.alpha() == 0 {
                         continue;
                     }
 
+                    let background_pixel = if blend == Some(&BlendType::Multiply)
+                        && background_pixels[i].alpha() == 0
+                    {
+                        // Value was never set, mulitply would fail
+                        white_pixel
+                    } else {
+                        background_pixels[i]
+                    };
+
                     if pixels_to_mask_id[i].is_some() {
                         // A mask pixel is at this location
-                        mask_pixmap.pixels_mut()[i] =
-                            alpha_blend_colors(mask_pixmap.pixels_mut()[i], pixel);
+                        mask_pixels[i] = blend_func(mask_pixels[i], pixel);
 
                         // Also write through to the background
-                        background_pixmap.pixels_mut()[i] =
-                            alpha_blend_colors(background_pixmap.pixels_mut()[i], pixel);
+                        background_pixels[i] = blend_func(background_pixel, pixel);
                     } else {
                         // No mask pixel, write to background
-                        background_pixmap.pixels_mut()[i] =
-                            alpha_blend_colors(background_pixmap.pixels_mut()[i], pixel);
+                        background_pixels[i] = blend_func(background_pixel, pixel);
                     }
                 }
             }
@@ -390,9 +411,9 @@ fn alpha_blend_colors(
         let foreground = foreground as f32;
         let background = background as f32;
 
-        let floating = (foreground / 255.0) + (background / 255.0) * (1.0 - foreground_alpha);
+        let output = (foreground / 255.0) + (background / 255.0) * (1.0 - foreground_alpha);
 
-        (floating * 255.0).round() as u8
+        (output * 255.0).round() as u8
     };
 
     let foreground_alpha = foreground.alpha() as f32 / 255.0;
@@ -404,6 +425,30 @@ fn alpha_blend_colors(
 
     PremultipliedColorU8::from_rgba(red, green, blue, red.max(green).max(blue).max(alpha))
         .expect("Could not convert alpha blend color")
+}
+
+fn multiply_blend_colors(
+    background: PremultipliedColorU8,
+    foreground: PremultipliedColorU8,
+) -> PremultipliedColorU8 {
+    let combine_values = |foreground: u8, background: u8| -> u8 {
+        let foreground = foreground as f32;
+        let background = background as f32;
+
+        let output = (foreground / 255.0) * (background / 255.0);
+
+        let output = output.min(1.0);
+
+        (output * 255.0).round() as u8
+    };
+
+    let red = combine_values(foreground.red(), background.red());
+    let green = combine_values(foreground.green(), background.green());
+    let blue = combine_values(foreground.blue(), background.blue());
+    let alpha = combine_values(foreground.alpha(), background.alpha());
+
+    PremultipliedColorU8::from_rgba(red, green, blue, red.max(green).max(blue).max(alpha))
+        .expect("Could not convert multiply blend color")
 }
 
 fn screen_filename(index: usize, platform_name: &str, platform: &PresetDefinition) -> String {
