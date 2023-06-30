@@ -41,7 +41,7 @@ pub fn build_svg(
         return Err(svg_error(svg_path));
     };
 
-    let svg_id_to_title = correlate_id_to_title(&contents);
+    let svg_id_to_title = correlate_id_to_title(&contents)?;
 
     let tree = usvg::Tree::from_str(&contents, &usvg::Options::default()).unwrap();
 
@@ -199,12 +199,14 @@ fn parse_title(title: &str) -> Option<u16> {
 
     let row_h = row_h as u16;
 
-    assert_eq!(sections.next(), None, "Title contained too many groups");
+    if sections.next() != None {
+        println!("Title contained too many groups");
+    }
 
     return Some((segment << 6) | (column << 2) | row_h);
 }
 
-fn correlate_id_to_title(contents: &String) -> HashMap<String, u16> {
+fn correlate_id_to_title(contents: &String) -> Result<HashMap<String, u16>, String> {
     let mut svg_id_to_title: HashMap<String, u16> = HashMap::new();
 
     #[derive(PartialEq, Debug)]
@@ -237,15 +239,16 @@ fn correlate_id_to_title(contents: &String) -> HashMap<String, u16> {
             svg::parser::Event::Tag("path", Type::Start, attributes) => {
                 let id: Option<String> = attributes.get("id").map(|v| v.clone().into());
 
-                assert_eq!(
-                    active_path, None,
-                    "SVG contains invalid nested paths at {id:?}",
-                );
+                if active_path != None {
+                    return Err(format!("SVG contains invalid nested paths at {id:?}"));
+                }
 
                 active_path = Some(ActivePath { id, title: None });
             }
             svg::parser::Event::Tag("title", Type::Start, _) => {
-                assert_eq!(inside_title, false, "SVG contains invalid nested titles");
+                if inside_title {
+                    return Err("SVG contains invalid nested titles".into());
+                }
 
                 inside_title = true;
             }
@@ -263,7 +266,9 @@ fn correlate_id_to_title(contents: &String) -> HashMap<String, u16> {
                 }
             }
             svg::parser::Event::Tag("title", Type::End, _) => {
-                assert_eq!(inside_title, true, "SVG contains an invalid end title tag");
+                if !inside_title {
+                    return Err("SVG contains an invalid end title tag".into());
+                }
 
                 inside_title = false;
             }
@@ -279,7 +284,7 @@ fn correlate_id_to_title(contents: &String) -> HashMap<String, u16> {
                 }
 
                 guard!(let Some(path) = &active_path else {
-                    panic!("SVG contains an invalid unterminated path");
+                    return Err("SVG contains an invalid unterminated path".into());
                 });
 
                 guard!(let Some(id) = &path.id else {
@@ -301,7 +306,7 @@ fn correlate_id_to_title(contents: &String) -> HashMap<String, u16> {
             }
             svg::parser::Event::Tag("g", Type::End, _) => {
                 guard!(let Some(group) = group_stack.last() else {
-                    panic!("SVG contains an invalid end group tag");
+                    return Err("SVG contains an invalid end group tag".into());
                 });
 
                 if let Some(ancestor_or_self) = group_stack.iter().rev().find(|g| g.title.is_some())
@@ -323,7 +328,7 @@ fn correlate_id_to_title(contents: &String) -> HashMap<String, u16> {
         }
     }
 
-    svg_id_to_title
+    Ok(svg_id_to_title)
 }
 
 fn keep_usvg_node(node: &usvg::Node, svg_id_to_title: &HashMap<String, u16>) -> bool {
