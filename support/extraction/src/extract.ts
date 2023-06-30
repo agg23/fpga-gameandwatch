@@ -244,7 +244,14 @@ const run = () => {
     consoles[homebrewTitle] = homebrewConfig;
   }
 
-  writeFileSync("manifest.json", JSON.stringify(consoles, undefined, 4));
+  const orderedConsoles = Object.keys(consoles)
+    .sort()
+    .reduce((obj, key) => {
+      obj[key] = consoles[key];
+      return obj;
+    }, {} as any);
+
+  writeFileSync("manifest.json", JSON.stringify(orderedConsoles, undefined, 4));
 };
 
 if (argv.length != 3) {
