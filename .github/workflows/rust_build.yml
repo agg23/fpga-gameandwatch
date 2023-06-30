@@ -1,0 +1,35 @@
+on: push
+
+jobs:
+  build_rust:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          [
+            x86_64-pc-windows-gnu,
+            x86_64-unknown-linux-musl,
+            x86_64-apple-darwin,
+          ]
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@master
+
+      - name: Compile
+        id: compile
+        uses: rust-build/rust-build.action@v1.4.3
+        with:
+          RUSTTARGET: ${{ matrix.target }}
+          SRC_DIR: "support"
+          UPLOAD_MODE: none
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Rust Builds
+          path: |
+            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
