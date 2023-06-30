@@ -13,9 +13,24 @@ pub struct MameLayout {
 #[derive(Debug, Deserialize)]
 pub struct NameElement {
     pub name: String,
+    #[serde(rename = "$value")]
+    pub items: Vec<NameElementChildren>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(PartialEq, Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NameElementChildren {
+    Image(Image),
+    Rect(Rect),
+}
+
+#[derive(PartialEq, Debug, Deserialize)]
+pub struct Image {}
+
+#[derive(PartialEq, Debug, Deserialize)]
+pub struct Rect {}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct View {
     pub name: String,
     // element: Vec<RefElement>,
@@ -24,7 +39,7 @@ pub struct View {
     pub items: Vec<ViewElement>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ViewElement {
     Bounds(CompleteBounds),
@@ -108,7 +123,7 @@ impl CompleteBounds {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Element {
     #[serde(rename = "ref")]
     #[serde(alias = "element")]
@@ -117,7 +132,7 @@ pub struct Element {
     pub blend: Option<BlendType>,
 }
 
-#[derive(PartialEq, Debug, Deserialize)]
+#[derive(Clone, PartialEq, Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum BlendType {
     Add,
@@ -125,14 +140,17 @@ pub enum BlendType {
     Multiply,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Screen {
     pub index: i32,
     pub bounds: CompleteBounds,
     pub blend: Option<BlendType>,
 }
 
-pub fn parse_layout(temp_dir: &Path, specified_layout: Option<&String>) -> Result<View, String> {
+pub fn parse_layout(
+    temp_dir: &Path,
+    specified_layout: Option<&String>,
+) -> Result<(MameLayout, View), String> {
     let layout_path = temp_dir.join("default.lay");
     let layout_file = match fs::read(&layout_path) {
         Ok(layout_file) => layout_file,
@@ -143,20 +161,22 @@ pub fn parse_layout(temp_dir: &Path, specified_layout: Option<&String>) -> Resul
         }
     };
 
-    let output: MameLayout = match serde_xml_rs::from_reader(layout_file.as_slice()) {
-        Ok(output) => output,
-        Err(err) => return Err(format!("Could not parse layout: \"{err}\"")),
-    };
+    // let output: MameLayout = match serde_xml_rs::from_reader(layout_file.as_slice()) {
+    //     Ok(output) => output,
+    //     Err(err) => {
+    //         return Err(format!("Could not parse layout: \"{err}\""))},
+    // };
+    let output: MameLayout = serde_xml_rs::from_reader(layout_file.as_slice()).unwrap();
 
     let mut map = HashMap::<String, View>::new();
 
-    for view in output.view {
-        map.insert(view.name.to_lowercase(), view);
+    for view in output.view.iter() {
+        map.insert(view.name.to_lowercase(), view.clone());
     }
 
     if let Some(specified_layout) = specified_layout {
         if let Some(view) = map.remove(&specified_layout.trim().to_lowercase()) {
-            return Ok(view);
+            return Ok((output, view));
         } else {
             return Err(format!("Could not find view named \"{specified_layout}\""));
         }
@@ -166,10 +186,10 @@ pub fn parse_layout(temp_dir: &Path, specified_layout: Option<&String>) -> Resul
         return Err("Could not find suitable view".to_string());
     });
 
-    Ok(view)
+    Ok((output, view))
 }
 
-fn select_view(views: &mut HashMap<String, View>) -> Option<View> {
+fn select_view<'a>(views: &mut HashMap<String, View>) -> Option<View> {
     // Constructed this way to give ordered priority to each view name we want
     let desired_names = vec![
         "backgrounds only (no frame)",

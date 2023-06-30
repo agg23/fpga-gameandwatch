@@ -260,7 +260,7 @@ fn main() {
             continue;
         }
 
-        let layout = match parse_layout(&asset_dir, args.layout.as_ref()) {
+        let (layout_manifest, layout) = match parse_layout(&asset_dir, args.layout.as_ref()) {
             Ok(layout) => layout,
             Err(err) => {
                 fail(name, err);
@@ -272,7 +272,14 @@ fn main() {
             background_bytes,
             mask_bytes,
             pixels_to_mask_id,
-        } = match render::render(&name, &layout, &platform, &asset_dir, args.debug) {
+        } = match render::render(
+            &name,
+            &layout,
+            &layout_manifest,
+            &platform,
+            &asset_dir,
+            args.debug,
+        ) {
             Ok(data) => data,
             Err(err) => {
                 fail(name, err);

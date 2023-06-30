@@ -5,7 +5,9 @@ use resvg::tiny_skia::{Pixmap, PixmapPaint, PremultipliedColorU8};
 use tiny_skia_path::Transform;
 
 use crate::{
-    layout::{BlendType, Bounds, Element, Screen, View, ViewElement},
+    layout::{
+        BlendType, Bounds, Element, MameLayout, NameElementChildren, Screen, View, ViewElement,
+    },
     manifest::{self, PlatformSpecification, PresetDefinition},
     svg_manage::build_svg,
     HEIGHT, WIDTH,
@@ -20,6 +22,7 @@ pub struct RenderedData {
 pub fn render(
     platform_name: &str,
     layout: &View,
+    layout_manifest: &MameLayout,
     platform: &PlatformSpecification,
     asset_dir: &Path,
     debug: bool,
@@ -169,6 +172,29 @@ pub fn render(
     for item in &filtered_items {
         match item {
             ViewElement::Element(element) | ViewElement::Overlay(element) => {
+                if layout_manifest
+                    .element
+                    .iter()
+                    .find(|e| {
+                        e.name == element.ref_name
+                            && e.items
+                                .iter()
+                                .find(|p| {
+                                    if let NameElementChildren::Image(_) = **p {
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                })
+                                .is_some()
+                    })
+                    .is_none()
+                {
+                    // There is no defined element with this name OR the defined element does not have image data
+                    // Skip
+                    continue;
+                }
+
                 let file_path = asset_dir
                     .join("foo")
                     .with_file_name(format!("{}.png", element.ref_name));
