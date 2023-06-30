@@ -33,7 +33,7 @@ const INSTANCE_CONSTRUCTOR_REGEX_BUILDER = (
 
 const homebrewTitles = {
   hbw_bride: { game: "gnw_dkjr", name: "Bride", year: "2018" },
-  hbw_sqeeze: { game: "gnw_mickdon", name: "Squeeze", year: "2018" },
+  hbw_squeeze: { game: "gnw_mickdon", name: "Squeeze", year: "2018" },
 };
 
 // This tool is constructed out of ad-hoc regex instead of being a clear "select block of a single platform and parse"
