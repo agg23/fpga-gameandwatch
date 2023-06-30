@@ -74,16 +74,16 @@ Note
 
 ## 5. Arithmetic Instructions
 
-| Mnemonic | Opcode     | Operation                                                       | Description                                                                                                           |
-| -------- | ---------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `ADD`    | `0x08`     | `Acc <- Acc + RAM`                                              | Add RAM to Acc                                                                                                        |
-| `ADD11`  | `0x09`     | `Acc <- Acc + RAM + C`, Set carry, skip next instr if new carry | Add RAM to Acc with carry. Skip next instr if carry                                                                   |
-| `ADX x`  | `0x3X`     | `Acc <- Acc + x`. Skip next instr if new carry                  | Add 4 bit immediate to Acc, saving carry. Skip next instr if carry except if immediate is `'d10` (exception is a bug) |
-| `COMA`   | `0x0A`     | `Acc <- ~Acc`                                                   | NOT Acc                                                                                                               |
-| ~~`DC`~~ | ~~`0x3A`~~ | ~~`Acc <- Acc + (1010)^2`~~                                     | ~~This command doesn't seem to exist anywhere. No idea what it's for~~ \[1]                                           |
-| `ROT`    | `0x6B`     | `C <- Acc[0] <- Acc[1] <- ... <- C`                             | Rotates right                                                                                                         |
-| `RC`     | `0x66`     | `C <- 0`                                                        | Clears carry                                                                                                          |
-| `SC`     | `0x67`     | `C <- 1`                                                        | Sets carry                                                                                                            |
+| Mnemonic | Opcode     | Operation                                                       | Description                                                                                                   |
+| -------- | ---------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `ADD`    | `0x08`     | `Acc <- Acc + RAM`                                              | Add RAM to Acc                                                                                                |
+| `ADD11`  | `0x09`     | `Acc <- Acc + RAM + C`, Set carry, skip next instr if new carry | Add RAM to Acc with carry. Skip next instr if carry                                                           |
+| `ADX x`  | `0x3X`     | `Acc <- Acc + x`. Skip next instr if add carried                | Add 4 bit immediate to Acc. Skip next instr if add carried except if immediate is `'d10` (exception is a bug) |
+| `COMA`   | `0x0A`     | `Acc <- ~Acc`                                                   | NOT Acc                                                                                                       |
+| ~~`DC`~~ | ~~`0x3A`~~ | ~~`Acc <- Acc + (1010)^2`~~                                     | ~~This command doesn't seem to exist anywhere. No idea what it's for~~ \[1]                                   |
+| `ROT`    | `0x6B`     | `C <- Acc[0] <- Acc[1] <- ... <- C`                             | Rotates right                                                                                                 |
+| `RC`     | `0x66`     | `C <- 0`                                                        | Clears carry                                                                                                  |
+| `SC`     | `0x67`     | `C <- 1`                                                        | Sets carry                                                                                                    |
 
 Notes:
 1. I don't know why this is listed in the docs. This is what `ADX x` does. However it has a bug at 0xA, which is what this exception shows

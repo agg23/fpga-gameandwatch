@@ -235,8 +235,10 @@ module sm510 (
   localparam STAGE_IDX_PERF = 5;
   localparam STAGE_HALT = 6;
   localparam STAGE_SKIP = 7;
+  localparam STAGE_SKIP_2 = 8;
+  localparam STAGE_SKIP_3 = 9;
 
-  reg [2:0] stage = STAGE_LOAD_PC;
+  reg [3:0] stage = STAGE_LOAD_PC;
 
   always @(posedge clk) begin
     if (reset) begin
@@ -275,7 +277,18 @@ module sm510 (
             stage <= STAGE_LOAD_PC;
           end
         end
-        STAGE_SKIP: stage <= STAGE_LOAD_PC;
+        STAGE_SKIP: begin
+          stage <= STAGE_LOAD_PC;
+
+          if (is_two_bytes) begin
+            // Evaluate for two byte. Since any instruction that sets PC won't leave enough
+            // time for the read to occur, we wait until the skip cycle to check
+            stage <= STAGE_SKIP_3;
+          end
+        end
+        // Two cycles for the first byte of a two byte skip
+        STAGE_SKIP_2: stage <= STAGE_LOAD_PC;
+        STAGE_SKIP_3: stage <= STAGE_SKIP_2;
       endcase
     end
   end
@@ -618,7 +631,7 @@ module sm510 (
 
       inst.clock_melody();
 
-      if (stage == STAGE_LOAD_PC || stage == STAGE_PERF_3) begin
+      if (stage == STAGE_LOAD_PC || stage == STAGE_PERF_3 || stage == STAGE_SKIP_3) begin
         // Increment PC
         // For two byte instr (STAGE_PERF_3), PC needs to be incremented for the next instruction,
         // as we already consumed the incremented version, so we need to do it again

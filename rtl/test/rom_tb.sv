@@ -70,12 +70,14 @@ module rom_tb;
     input_k = 0;
 
     // Donkey Kong II
-    // if (shifter_s[1]) begin
-    //   input_k |= press_dpad_up ? 4'h2 : 0;
-    // end else if (shifter_s[2]) begin
-    //   input_k |= press_game_a ? 4'h4 : 0;
-    //   input_k |= press_game_b ? 4'h2 : 0;
-    // end
+    if (shifter_s[1]) begin
+      input_k |= press_dpad_right ? 4'h1 : 0;
+      input_k |= press_dpad_up ? 4'h2 : 0;
+    end
+    if (shifter_s[2]) begin
+      input_k |= press_game_a ? 4'h4 : 0;
+      input_k |= press_game_b ? 4'h2 : 0;
+    end
     // Cement
     // if (shifter_s[1]) begin
     //   input_k |= press_game_a ? 4'h4 : 0;
@@ -100,13 +102,13 @@ module rom_tb;
     //   input_k |= press_game_a ? 4'h8 : 0;
     // end
 
-    if (shifter_s[0]) begin
-      input_k |= press_dpad_right ? 4'h2 : 0;
-    end
-
-    if (shifter_s[1]) begin
-      input_k |= press_game_a ? 4'h2 : 0;
-    end
+    // TFish
+    // if (shifter_s[0]) begin
+    //   input_k |= press_dpad_right ? 4'h2 : 0;
+    // end
+    // if (shifter_s[1]) begin
+    //   input_k |= press_game_a ? 4'h2 : 0;
+    // end
   end
 
   // initial $readmemh("dkii.hex", rom);
@@ -114,9 +116,10 @@ module rom_tb;
   // initial $readmemh("dkjr.hex", rom);
   // initial $readmemh("octopus.hex", rom);
   // initial $readmemh("egg.hex", rom);
-  initial $readmemh("tfish.hex", rom);
+  // initial $readmemh("tfish.hex", rom);
   // initial $readmemh("tsfight2.hex", rom);
   // initial $readmemh("tddragon.hex", rom);
+  initial $readmemh("bride.hex", rom);
 
   initial begin
     // Initialize RAM
@@ -127,6 +130,9 @@ module rom_tb;
   end
 
   reg [11:0] last_pc;
+  reg in_instruction;
+  reg did_skip;
+  reg last_did_skip;
   integer fd = 0;
   integer step_count;
 
@@ -142,13 +148,20 @@ module rom_tb;
     end
   endtask
 
+  wire is_skip = cpu_uut.stage == 7 || cpu_uut.stage == 8 || cpu_uut.stage == 9;
+
   initial begin
     reg did_write;
     did_write = 0;
 
+    in_instruction = 0;
+
+    did_skip = 0;
+    last_did_skip = 0;
+
     step_count = 0;
 
-    // fd = $fopen("log.txt", "w");
+    fd = $fopen("log.txt", "w");
 
     reset = 1;
 
@@ -159,13 +172,25 @@ module rom_tb;
     forever begin
       #1;
 
+      if (cpu_uut.stage != 0) begin
+        in_instruction = 1;
+      end
+
+      if (is_skip) begin
+        did_skip = 1;
+      end
+
       if (~did_write && cpu_uut.stage == 1) begin
         // STAGE_DECODE_PERF_1
-        did_write = 1;
+        if (last_did_skip && cpu_uut.opcode == 8'h0) begin
+          // SKIP after previous skip. To match MAME, don't log, and don't count as a step
+        end else begin
+          did_write = 1;
 
-        log();
-        step_count += 1;
-      end else if (~did_write && cpu_uut.stage == 7 && cpu_uut.opcode[7:4] == 4'h2 && cpu_uut.last_opcode[7:4] == 4'h2) begin
+          log();
+          step_count += 1;
+        end
+      end else if (~did_write && is_skip && cpu_uut.opcode[7:4] == 4'h2 && cpu_uut.last_opcode[7:4] == 4'h2) begin
         // Log skipped LAX in order to match MAME
         did_write = 1;
 
@@ -175,9 +200,29 @@ module rom_tb;
         // STAGE_LOAD_PC
         did_write = 0;
 
+        if (in_instruction) begin
+          // This is the first cycle of this stage
+          last_did_skip = did_skip;
+          did_skip = 0;
+        end
+
+        in_instruction = 0;
+
         // Store prev PC for use in tracing
-        last_pc   = cpu_uut.inst.pc;
+        last_pc = cpu_uut.inst.pc;
       end
+
+      // if (step_count == 32'h8000) begin
+      //   // Enable Game A
+      //   press_game_a = 1;
+      //   $fwrite(fd, "Pressing A\n");
+      // end else if (step_count == 32'h8000 + 32'h800) begin
+      //   // Disable Game A
+      //   press_game_a = 0;
+      //   $fwrite(fd, "Releasing A\n");
+      // end else if (step_count == 32'h8000 + 32'h800 + 32'h4E20) begin
+      //   $stop();
+      // end
 
       // Donkey Kong II
       // if (step_count == 32'h4E20) begin
@@ -215,39 +260,58 @@ module rom_tb;
       //   $finish();
       // end
 
-      // if (step_count == 32'h8000) begin
-      //   // Enable Game A
-      //   press_game_a = 1;
-      //   $fwrite(fd, "Pressing A\n");
-      // end else if (step_count == 32'h8000 + 32'h800) begin
-      //   // Disable Game A
-      //   press_game_a = 0;
-      //   $fwrite(fd, "Releasing A\n");
-      // end else if (step_count == 32'h8000 + 32'h800 + 32'h4E20) begin
-      //   $stop();
-      // end
-
-      // TFish
+      // Bride
       if (step_count == 32'h8000) begin
-        press_game_a = 1;
-      end else if (step_count == 32'h8000 + 32'h800) begin
-        press_game_a = 0;
-      end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000) begin
-        fd = $fopen("log.txt", "w");
-        press_dpad_right = 1;
-        $fwrite(fd, "Pressing right\n");
-      end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000) begin
-        press_dpad_right = 0;
-        $fwrite(fd, "Releasing right\n");
-      end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000 + 32'h8000) begin
+        // Enable Game A
         press_game_a = 1;
         $fwrite(fd, "Pressing A\n");
-      end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000 + 32'h8000 + 32'h8000) begin
+      end else if (step_count == 32'h8000 + 32'h800) begin
+        // Disable Game A
         press_game_a = 0;
         $fwrite(fd, "Releasing A\n");
-      end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000 + 32'h8000 + 32'h8000 + 32'h8000) begin
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h8000) begin
+        press_dpad_right = 1;
+        $fwrite(fd, "Pressing right\n");
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h8000 + 32'h1000) begin
+        press_dpad_right = 0;
+        $fwrite(fd, "Releasing right\n");
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h8000 + 32'h1000 + 32'h1000) begin
+        press_dpad_right = 1;
+        $fwrite(fd, "Pressing right\n");
+      end  else if (step_count == 32'h8000 + 32'h800 + 32'h8000 + 32'h1000 + 32'h1000 + 32'h1000) begin
+        press_dpad_right = 0;
+        $fwrite(fd, "Releasing right\n");
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h8000 + 32'h1000 + 32'h1000 + 32'h1000 + 32'h1000) begin
+        press_dpad_right = 1;
+        $fwrite(fd, "Pressing right\n");
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h8000 + 32'h1000 + 32'h1000 + 32'h1000 + 32'h1000 + 32'h1000) begin
+        press_dpad_right = 0;
+        $fwrite(fd, "Releasing right\n");
+      end else if (step_count == 32'h8000 + 32'h800 + 32'h8000 + 32'h1000 + 32'h1000 + 32'h1000 + 32'h1000 + 32'h1000 + 32'h1000) begin
         $stop();
       end
+
+      // TFish
+      // if (step_count == 32'h8000) begin
+      //   press_game_a = 1;
+      // end else if (step_count == 32'h8000 + 32'h800) begin
+      //   press_game_a = 0;
+      // end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000) begin
+      //   fd = $fopen("log.txt", "w");
+      //   press_dpad_right = 1;
+      //   $fwrite(fd, "Pressing right\n");
+      // end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000) begin
+      //   press_dpad_right = 0;
+      //   $fwrite(fd, "Releasing right\n");
+      // end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000 + 32'h8000) begin
+      //   press_game_a = 1;
+      //   $fwrite(fd, "Pressing A\n");
+      // end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000 + 32'h8000 + 32'h8000) begin
+      //   press_game_a = 0;
+      //   $fwrite(fd, "Releasing A\n");
+      // end else if (step_count == 32'h8000 + 32'h800 + 32'h80000 + 32'h1000 + 32'h8000 + 32'h8000 + 32'h8000 + 32'h8000) begin
+      //   $stop();
+      // end
       // if (step_count == 32'h8000) begin
       //   press_dpad_right = 1;
       //   $fwrite(fd, "Pressing right\n");
