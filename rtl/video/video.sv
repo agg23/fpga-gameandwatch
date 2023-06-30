@@ -24,6 +24,9 @@ module video #(
 
     input wire [1:0] output_lcd_h_index,
 
+    // Settings
+    input wire [7:0] lcd_off_alpha,
+
     // Video
     output reg hsync,
     output reg vsync,
@@ -94,7 +97,14 @@ module video #(
   wire [23:0] background_rgb;
   wire [23:0] mask_rgb;
 
-  assign rgb = reset ? 24'h0 : segment_en ? mask_rgb : background_rgb;
+  wire [7:0] alpha = reset ? 24'h0 : segment_en ? 8'hFF : lcd_off_alpha;
+
+  alpha_blend alpha_blend (
+      .background_pixel(background_rgb),
+      .foreground_pixel({mask_rgb, alpha}),
+
+      .output_pixel(rgb)
+  );
 
   rgb_controller rgb_controller (
       .clk_sys_99_287(clk_sys_99_287),

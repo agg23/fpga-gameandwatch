@@ -26,12 +26,15 @@ The [ROM Generator](docs/rom_generator.md) will read the attached `manifest.json
 ## Features
 
 * 720 x 720 pixel resolution
+* Ability to show inactive LCD segments with configurable opacity
 * Deflicker on the LCD
 * VSync after the deflicker has taken place
 
 ## Settings
 
-* `Acc. LCD Timing` - Accurate LCD timing - By default, the Game and Watch's LCD pulses at 64hz, which is what drives the static LCD screen. However, due to lack of persistence of our modern LCDs, this just results in a bunch of flicker. Instead when this setting is disabled, the LCD data will be updated at 1000 Hz. Enabling this setting updates the LCD at 64 Hz.
+* `Show Inactive LCD` - LCD segments that are inactive (off) remain displayed. See `Inact. LCD Alpha`
+* `Inact. LCD Alpha` - `Inactive LCD Alpha` - If `Show Inactive LCD` is on (or this setting is set on MiSTer), sets the opacity of the disabled segments. Defaults to approximately 5%, or 13/255.
+* `Acc. LCD Timing` - `Accurate LCD timing` - By default, the Game and Watch's LCD pulses at 64hz, which is what drives the static LCD screen. However, due to lack of persistence of our modern LCDs, this just results in a bunch of flicker. Instead when this setting is disabled, the LCD data will be updated at 1000 Hz. Enabling this setting updates the LCD at 64 Hz.
 
 ## Core Docs
 

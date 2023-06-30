@@ -306,6 +306,9 @@ module core_top (
       default: begin
         bridge_rd_data <= 0;
       end
+      32'h214: begin
+        bridge_rd_data <= {24'h0, lcd_off_alpha};
+      end
       32'h10xxxxxx: begin
         // example
         // bridge_rd_data <= example_device_data;
@@ -329,6 +332,12 @@ module core_top (
         end
         32'h200: begin
           accurate_lcd_timing <= bridge_wr_data[0];
+        end
+        32'h210: begin
+          show_lcd_off <= bridge_wr_data[0];
+        end
+        32'h214: begin
+          lcd_off_alpha <= bridge_wr_data[7:0];
         end
       endcase
     end
@@ -537,6 +546,10 @@ module core_top (
   wire external_reset = reset_delay > 0;
 
   reg accurate_lcd_timing = 0;
+  reg show_lcd_off = 0;
+  reg [7:0] lcd_off_alpha = 0;
+
+  wire [7:0] computed_lcd_off_alpha = show_lcd_off ? lcd_off_alpha : 8'h0;
 
   // Synced settings
   wire ioctl_download_s;
@@ -545,12 +558,27 @@ module core_top (
 
   wire external_reset_s;
   wire accurate_lcd_timing_s;
+  wire [7:0] lcd_off_alpha_s;
 
   synch_3 #(
-      .WIDTH(5)
+      .WIDTH(13)
   ) internal_s (
-      {ioctl_download, reset_n, pll_core_locked, external_reset, accurate_lcd_timing},
-      {ioctl_download_s, reset_n_s, pll_core_locked_s, external_reset_s, accurate_lcd_timing_s},
+      {
+        ioctl_download,
+        reset_n,
+        pll_core_locked,
+        external_reset,
+        accurate_lcd_timing,
+        computed_lcd_off_alpha
+      },
+      {
+        ioctl_download_s,
+        reset_n_s,
+        pll_core_locked_s,
+        external_reset_s,
+        accurate_lcd_timing_s,
+        lcd_off_alpha_s
+      },
       clk_sys_99_287
   );
 
@@ -608,6 +636,7 @@ module core_top (
 
       // Settings
       .accurate_lcd_timing(accurate_lcd_timing_s),
+      .lcd_off_alpha(lcd_off_alpha_s),
 
       // SDRAM
       .SDRAM_A(dram_a),

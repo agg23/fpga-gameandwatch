@@ -41,6 +41,7 @@ module gameandwatch (
 
     // Settings
     input wire accurate_lcd_timing, // Use precise timing to update the cached LCD segments based on H timing. This doesn't look good, hence the setting
+    input wire [7:0] lcd_off_alpha, // The alpha value of all disabled/off LCD segments. This allows the LCD to stay visible at all times
 
     // SDRAM
     inout  wire [15:0] SDRAM_DQ,
@@ -260,6 +261,9 @@ module gameandwatch (
       .current_w_main (current_w_main),
 
       .output_lcd_h_index(output_lcd_h_index),
+
+      // Settings
+      .lcd_off_alpha(lcd_off_alpha),
 
       // Video
       .hsync (hsync),

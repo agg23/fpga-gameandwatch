@@ -213,6 +213,8 @@ module core_top (
     "Game and Watch;;",
     "FS0,gnw,Load ROM;",
     "-;",
+    "O[5:2],Inactive LCD Alpha,Off,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%,100%",
+    "-;",
     "O[1],Accurate LCD Timing,Off,On;",
     "-;",
     "-;",
@@ -293,6 +295,30 @@ module core_top (
   // Settings
   wire external_reset = status[0];
   wire accurate_lcd_timing = status[1];
+  wire [3:0] inactive_lcd_alpha_selection = status[5:2];
+
+  // Comb
+  reg [7:0] lcd_off_alpha;
+
+  always_comb begin
+    lcd_off_alpha = 0;
+
+    case (inactive_lcd_alpha_selection)
+      0: lcd_off_alpha = 0;  // Off
+      1: lcd_off_alpha = 13;  // 5%
+      2: lcd_off_alpha = 26;  // 10%
+      3: lcd_off_alpha = 51;  // 20%
+      4: lcd_off_alpha = 77;  // 30%
+      5: lcd_off_alpha = 102;  // 40%
+      6: lcd_off_alpha = 128;  // 50%
+      7: lcd_off_alpha = 153;  // 60%
+      8: lcd_off_alpha = 179;  // 70%
+      9: lcd_off_alpha = 204;  // 80%
+      10: lcd_off_alpha = 230;  // 90%
+      11: lcd_off_alpha = 255;  // 100%
+      default: lcd_off_alpha = 0;
+    endcase
+  end
 
   ////////////////////////////////////////////////////////////////////////////////////////
   // Core
@@ -378,6 +404,7 @@ module core_top (
 
       // Settings
       .accurate_lcd_timing(accurate_lcd_timing),
+      .lcd_off_alpha(lcd_off_alpha),
 
       // SDRAM
       .SDRAM_A(SDRAM_A),

@@ -11,6 +11,39 @@
         "value": 1
       },
       {
+        "name": "Video",
+        "id": 40,
+        "type": "action",
+        "enabled": false
+      },
+      {
+        "name": "Show Inactive LCD",
+        "id": 200,
+        "type": "check",
+        "enabled": true,
+        "address": "0x210",
+        "persist": true,
+        "writeonly": true,
+        "defaultval": 0,
+        "value": 1
+      },
+      {
+        "name": "Inact. LCD Alpha",
+        "id": 201,
+        "type": "slider_u32",
+        "enabled": true,
+        "persist": true,
+        "address": "0x214",
+        "defaultval": 13,
+        "graphical": {
+          "signed": false,
+          "min": 0,
+          "max": 255,
+          "adjust_small": 1,
+          "adjust_large": "0x10"
+        }
+      },
+      {
         "name": "Acc. LCD Timing",
         "id": 100,
         "type": "check",

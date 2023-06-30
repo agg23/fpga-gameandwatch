@@ -55,11 +55,18 @@ module segments #(
       .has_segment(has_segment)
   );
 
+  reg segment_active = 0;
+
+  always @(posedge clk) begin
+    // We have 2 cycles until we need the RGB, so this cycle delay should be fine
+    segment_active <= segments[segment_line_select][segment_column][segment_row];
+  end
+
   always_comb begin
     segment_en = 0;
 
     if (has_segment) begin
-      segment_en = segments[segment_line_select][segment_column][segment_row];
+      segment_en = segment_active;
     end
   end
 endmodule
