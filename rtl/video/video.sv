@@ -34,7 +34,7 @@ module video #(
     output reg vblank,
 
     output reg de,
-    output wire [23:0] rgb,
+    output reg [23:0] rgb,
 
     // SDRAM
     input wire sd_data_available,
@@ -96,6 +96,7 @@ module video #(
 
   wire [23:0] background_rgb;
   wire [23:0] mask_rgb;
+  wire [23:0] processed_rgb;
 
   wire [7:0] alpha = reset ? 24'h0 : segment_en ? 8'hFF : lcd_off_alpha;
 
@@ -103,8 +104,13 @@ module video #(
       .background_pixel(background_rgb),
       .foreground_pixel({mask_rgb, alpha}),
 
-      .output_pixel(rgb)
+      .output_pixel(processed_rgb)
   );
+
+  always @(posedge clk_sys_99_287) begin
+    // We have two cycles to do work. One is spent on segment_en, one is spent here 
+    rgb <= processed_rgb;
+  end
 
   rgb_controller rgb_controller (
       .clk_sys_99_287(clk_sys_99_287),
