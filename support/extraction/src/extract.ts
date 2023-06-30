@@ -14,7 +14,7 @@ const PORT_SETTINGS_REGEX =
 
 const CLASS_DEF_REGEX = /class\s+(.*_state)\s+:[\s\S]*?};/g;
 
-const CLASS_DEF_CONSTUCTOR_REGEX = /void\s+(.*)\(machine_config\s*&\s*config/g;
+const CLASS_DEF_CONSTUCTOR_REGEX = /void\s+(.*)\(machine_config\s*&\s*.*?\)/g;
 
 const SYS_DEF_REGEX =
   /SYST\(\s*([0-9\?]{4})\s*,\s*(.*?)?\s*,.*?,.*?,.*?,.*?,.*?,.*?,\s*"(.*?)"\s*,\s*"(.*?)"/g;
