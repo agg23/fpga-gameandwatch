@@ -71,7 +71,7 @@ module osd
     reg [21:0] osd_w;
 
     reg  [1:0] rot = 0;
-    reg  [5:0] osd_rgb;
+    reg  [5:0] osd_rgb = 6'h0;
     reg [11:0] osd_width = 12'd256;
 
     always@(posedge clk_sys) begin
@@ -349,9 +349,9 @@ module osd
 
         nrdout1 <= din;
         ordout1 <= {
-                    {osd_pixel, osd_rgb[5:4], din[23:19]},  // 23:16 - R
-                    {osd_pixel, osd_rgb[3:2], din[15:11]},  // 15:8  - G
-                    {osd_pixel, osd_rgb[1:0], din[7:3]  }   //  7:0  - B
+                    {osd_pixel, osd_pixel, osd_rgb[5:4], din[23:20]},  // 23:16 - R
+                    {osd_pixel, osd_pixel, osd_rgb[3:2], din[15:12]},  // 15:8  - G
+                    {osd_pixel, osd_pixel, osd_rgb[1:0], din[7:4]  }   //  7:0  - B
                 };
 
         osd_mux <= ~osd_de[2];

@@ -235,9 +235,12 @@ fn correlate_id_to_title(contents: &String) -> HashMap<String, u16> {
                 });
             }
             svg::parser::Event::Tag("path", Type::Start, attributes) => {
-                assert_eq!(active_path, None, "SVG contains invalid nested paths");
-
                 let id: Option<String> = attributes.get("id").map(|v| v.clone().into());
+
+                assert_eq!(
+                    active_path, None,
+                    "SVG contains invalid nested paths at {id:?}",
+                );
 
                 active_path = Some(ActivePath { id, title: None });
             }
@@ -266,6 +269,7 @@ fn correlate_id_to_title(contents: &String) -> HashMap<String, u16> {
             }
             svg::parser::Event::Tag("path", tag_type, attributes) => {
                 if tag_type == Type::Empty {
+                    // There's no end tag, so path wasn't terminated normally. Create the path and end it
                     let path = ActivePath {
                         id: attributes.get("id").map(|v| v.clone().into()),
                         title: None,
