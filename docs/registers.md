@@ -57,4 +57,6 @@ Hardware registers for maintaining stack depth and values. `S` is the first leve
 
 * `H` - 4 bits - Controls which bit (out of 4) for each word in display memory is being used to drive the segments. Docs say it has a 1/4 duty cycle, so each bit is high 1/4th of the time, so it's driven by a counter up to 4. An aside lists the frame frequency as 64Hz
 * `S` - 8 bits - Directly driven by the `W` register (the SM510 docs talk about the `W'` register and `PTW` instruction, but those don't exist on this hardware)
+  * Each bit selects a row of the input matrix, and multiple set bits means the matrix lines are ORed together
+  * Sometimes hardware grounds one of the lines, so it is always active and ORed to the rest of the active input
 * `BS` - 1 bit - Somehow driven by "the contents of the `L` or `Y` register", but it doesn't describe how. It uses the same 1/4 duty cycle, so assumedly it changes along with `H`. MAME ANDs the two registers, but only sometime. TODO: This is implemented with only `L` at the moment
