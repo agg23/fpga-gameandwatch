@@ -23,6 +23,12 @@ The Game and Watch (and related) series of devices used varied hardware for each
 
 The [ROM Generator](docs/rom_generator.md) will read the attached `manifest.json` file to determine what CPU is used by each game. You can manually look through this file yourself, or use the generator tool to determine if a game is supported at this time.
 
+### Homebrew
+
+For homebrew titles (I only know of [Bride and Squeeze](https://forums.atariage.com/topic/282578-two-new-homebrew-lcd-games-game-watch/)), you should rename the artwork and roms zips to have the `hbw_` prefix, and the name of the game. Thus Bride becomes `hbw_bride` and Squeeze becomes `hbw_squeeze`.
+
+Squeeze does not run correctly due to having a completely different artwork design than any other core. [See #11 for more information](https://github.com/agg23/fpga-gameandwatch/issues/11#issuecomment-1614828078).
+
 ## Features
 
 * 720 x 720 pixel resolution
