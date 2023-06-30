@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File},
-    io::{self, Read},
+    io::{self, Read, Seek},
     path::{Path, PathBuf},
 };
 
@@ -103,6 +103,9 @@ fn find_rom_by_hash(target_hash: &String, asset_dir: &Path) -> Result<Vec<u8>, S
 
             if &hash == target_hash {
                 let mut buffer = Vec::new();
+                if let Err(_) = file.seek(io::SeekFrom::Start(0)) {
+                    return Err("Could not reread from file after hash check".into());
+                }
                 if let Err(_) = file.read_to_end(&mut buffer) {
                     return Err(format!("Could not open SHA matched ROM {:?}", entry.path()));
                 }
