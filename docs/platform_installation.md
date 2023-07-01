@@ -41,7 +41,13 @@ See [ROMs](#roms) to install the correct ROMs and have a booting core.
 
 ### Easy Mode
 
-You can use the built in [MiSTer Downloader](https://github.com/MiSTer-devel/Downloader_MiSTer) script to automatically fetch all of my cores on release.
+#### Update All
+
+Open the [Update All](https://github.com/theypsilon/Update_All_MiSTer) settings menu, the `Unofficial Cores` submenu, and enable `agg23's MiSTer Cores` from there. [Visit the Update All page](https://github.com/theypsilon/Update_All_MiSTer) for more information on how to set up the script
+
+#### Downloader
+
+You can manually add my cores to the [MiSTer Downloader](https://github.com/MiSTer-devel/Downloader_MiSTer) script to automatically fetch all of my cores on release.
 
 To start receiving my cores, simply paste the following snippet at the bottom of your `downloader.ini`. This will add my database to the list of locations MiSTer Downloader checks for updates from:
 
