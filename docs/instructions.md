@@ -150,32 +150,70 @@ Values outside of this range (in the form `0xXD-F` where `X` <= 4) are wrapped b
 
 ## Instructions
 
-| Mnemonic | Opcode      | Operation                                                                                                               | Replaces                                |
-| -------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `SBM`    | `0x02`      | Set high bit of `Bm` high                                                                                               | `SBM`, just different definition        |
-| `LB`     | `0x4X`      | Set `Bm` to low 2 immed. Set `Bl` to high two immed ORed with 8                                                         | `LB`, just different definition         |
-| `SSR`    | `0x7X`      | Set stack `S` `Pm` (page) to immed. Sets `E` flag for next opcode                                                       | `TL` and `TML`, long jump and long call |
-| `TR`     | `0x80-0xBF` | Long or short jump. Uses set page value to determine whether long/short \[1]                                            | `T` short jump                          |
-| `TRS`    | `0xC0-0xFF` | Call subroutine. Sets `Pl` to immed, pushes stack. Uses stored page/bank if `E` flag is set from `SSR` prev instruction | `TM` jump to IDX table                  |
-| `ATR`    | `0x01`      | Same as normal: Set `R` buzzer control value to the bottom two bits of Acc                                              | `ATBP` set BP                           |
-| `ATBP`   | `0x03`      | Same as normal: Set LCD BP reg to Acc                                                                                   | `ATPL` set PC low bits                  |
-| `TAL`    | `0x50`      | Skip next instr if `BA` is set                                                                                          | None                                    |
-| `PTW`    | `0x59`      | Copy last two values from `W'` to `W`                                                                                   | `ATL` set `L` segment output            |
-| `TW`     | `0x5C`      | Copy `W'` to `W`                                                                                                        | None                                    |
-| `DTW`    | `0x5D`      | Shift PLA value into `W'`. See \[2]                                                                                     | `CEND` stop clock                       |
-| `COMCN`  | `0x60`      | XOR (complement) LCD `CN` flag                                                                                          | `ATFC` set `Y` segment output           |
-| `PDTW`   | `0x61`      | Shift last two nibbles only, moving one PLA value into `W'` \[2]                                                        | `ATR` set buzzer                        |
-| `WR`     | `0x62`      | Shift Acc (with 0 high bit) into `W'`                                                                                   | `WR`, just different definition         |
-| `WS`     | `0x63`      | Shift Acc (with 1 high bit) into `W'`                                                                                   | `WS`, just different definition         |
-| `INCB`   | `0x64`      | Increment `Bl`. If `Bl` was 8, skip next inst                                                                           | `INCB`, just different definition       |
-| `IDIV`   | `0x65`      | Reset clock divider, keeping the low 6 bits bits                                                                        | `IDIV`, just different definition       |
-| `RMF`    | `0x68`      | Clear `m'` and Acc                                                                                                      | `TF1` skip if divider                   |
-| `SMF`    | `0x69`      | Set `m'`                                                                                                                | `TF4` skip if divider                   |
-| `RBM`    | `0x6B`      | Clear `Bm` high bit                                                                                                     | `ROT` rotate right                      |
-| `COMCB`  | `0x6D`      | XOR (complement) `CB`                                                                                                   | `BCD` set LCD power                     |
-| `CEND`   | `0x5E 0x00` | Stop clock                                                                                                              | `TAL`                                   |
-| `DTA`    | `0x5E 0x04` | Copy high 4 bits of clock divider to Acc                                                                                | `TAL`                                   |
+| Mnemonic        | Opcode      | Operation                                                                                                               | Replaces                                |
+| --------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `SBM`           | `0x02`      | Set high bit of `Bm` high                                                                                               | `SBM`, just different definition        |
+| `LB`            | `0x4X`      | Set `Bm` to low 2 immed. Set `Bl` to high two immed ORed with 8                                                         | `LB`, just different definition         |
+| `SSR`           | `0x7X`      | Set stack `S` `Pm` (page) to immed. Sets `E` flag for next opcode                                                       | `TL` and `TML`, long jump and long call |
+| `TR`            | `0x80-0xBF` | Long or short jump. Uses set page value to determine whether long/short \[1]                                            | `T` short jump                          |
+| `TRS`           | `0xC0-0xFF` | Call subroutine. Sets `Pl` to immed, pushes stack. Uses stored page/bank if `E` flag is set from `SSR` prev instruction | `TM` jump to IDX table                  |
+| `ATR`           | `0x01`      | Same as normal: Set `R` buzzer control value to the bottom two bits of Acc                                              | `ATBP` set BP                           |
+| `ATBP`          | `0x03`      | Same as normal: Set LCD BP reg to Acc                                                                                   | `ATPL` set PC low bits                  |
+| `TAL`           | `0x50`      | Skip next instr if `BA` is set                                                                                          | None                                    |
+| `PTW`           | `0x59`      | Copy last two values from `W'` to `W`                                                                                   | `ATL` set `L` segment output            |
+| `TW`            | `0x5C`      | Copy `W'` to `W`                                                                                                        | None                                    |
+| `DTW`           | `0x5D`      | Shift PLA value into `W'`. See \[2]                                                                                     | `CEND` stop clock                       |
+| `COMCN`         | `0x60`      | XOR (complement) LCD `CN` flag                                                                                          | `ATFC` set `Y` segment output           |
+| `PDTW`          | `0x61`      | Shift last two nibbles only, moving one PLA value into `W'` \[2]                                                        | `ATR` set buzzer                        |
+| `WR`            | `0x62`      | Shift Acc (with 0 high bit) into `W'`                                                                                   | `WR`, just different definition         |
+| `WS`            | `0x63`      | Shift Acc (with 1 high bit) into `W'`                                                                                   | `WS`, just different definition         |
+| `INCB`          | `0x64`      | Increment `Bl`. If `Bl` was 8, skip next inst                                                                           | `INCB`, just different definition       |
+| `IDIV`          | `0x65`      | Reset clock divider, keeping the low 6 bits bits                                                                        | `IDIV`, just different definition       |
+| `RMF`           | `0x68`      | Clear `m'` and Acc                                                                                                      | `TF1` skip if divider                   |
+| `SMF`           | `0x69`      | Set `m'`                                                                                                                | `TF4` skip if divider                   |
+| `RBM`           | `0x6B`      | Clear `Bm` high bit                                                                                                     | `ROT` rotate right                      |
+| `COMCB`         | `0x6D`      | XOR (complement) `CB`                                                                                                   | `BCD` set LCD power                     |
+| `CEND` (2 byte) | `0x5E 0x00` | Stop clock                                                                                                              | `TAL`                                   |
+| `DTA` (2 byte)  | `0x5E 0x04` | Copy high 4 bits of clock divider to Acc                                                                                | `TAL`                                   |
 
 Note:
 1. MAME has some strange logic for the `m_rsub` flag which indicates whether a call has occurred (`TRS`), and changes all of the branching behavior of `TR` and `TRS` until `RTN0` is executed
 2. PLA values from MAME: `0xe, 0x0, 0xc, 0x8, 0x2, 0xa, 0xe, 0x2, 0xe, 0xa, 0x0, 0x0, 0x2, 0xa, 0x2, 0x2, 0xb, 0x9, 0x7, 0xf, 0xd, 0xe, 0xe, 0xb, 0xf, 0xf, 0x4, 0x0, 0xd, 0xe, 0x4, 0x0`
+
+# Variant: SM511/SM512
+
+SM512 addresses significiantly more segments (200 vs 136), but has a smaller main RAM to compensate (corresponding to the same total amount of RAM, 96 x 4 + 32 x 4 bits).
+
+## Hardware
+
+* Grows ROM size to 4032 x 8 bits, as opposed to the 2772 x 8 for SM510
+* Adds Melody ROM and generator, which directly drives the buzzer `R` output
+* SM512 adds `Ci` set of segment lines, alongside the existing `Ai` and `Bi`
+* `BS` is two bits, with `L` driving `BS[0]`, and `X` driving `BS[1]`. `BS[0]` blinks segments (combined with `H[0]-H[3]`) with a period of 1s
+* While input clock remains at 32.768kHz, the system clock is selectable as 8.192kHz or 16.384kHz. The initial clock is 8.192kHz
+
+### Melody
+
+ROM consists of 256 x 6 bits which consists of music notes, pauses, and stops. 12 tones are available across two octaves (generated by alternating the number of low and high clock cycles), and can be generated for 125ms or 62.5ms.
+
+## Instructions
+
+| Mnemonic               | Opcode                  | Operation                                                                                                           | Replaces                                                |
+| ---------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `TL xyz` (2 byte)      | `0x70-7F` X `0x00-FF` Y | `{Pu, Pm, Pl} <- {y[7:6], x[3:0], y[5:0]}`                                                                          | `TL`, just expands the opcode to fill the entire space  |
+| `TML xyz` (2 byte)     | `0x68-6B` X `0x00-FF` Y | Long call. Push `PC + 2` into stack registers. `R <- S <- PC + 1, Pu <- y[7:6], Pm <- {2'b0, x[1:0]}, Pl <- y[5:0]` | Same as `TML`, just moved. Replaces `TF1` and `TF4`     |
+| `TM x` (psuedo 2 byte) | `0xC0-FF`               | `R <- S <- PC + 1, {Pu, Pm, Pl} <- {2'b0, 4'b0, x[5:0]}`                                                            | `TM`, just expands the opcode to fill the entire space  |
+| `IDX yz`               | `0x00-FF`               | `{Pu, Pm, Pl} <- {y[7:6], 4'h4, x[5:0]}, `                                                                          | `IDX`, just expands the opcode to fill the entire space |
+| `BDC` (2 byte)         | `0x60` `0x34`           | Set `BC` to `C`. Set LCD power. Display is on if `C` is low                                                         | `ATFC`                                                  |
+| `KTA`                  | `0x50`                  | Reads `K` input bits into Acc                                                                                       | None                                                    |
+| `ATBP` (2 byte)        | `0x60` `0x35`           | Set LCD BP reg to Acc                                                                                               | `ATFC`                                                  |
+| `ATX`                  | `0x5C`                  | Set Segment output `X to Acc`                                                                                       | `None`                                                  |
+| `ATFC` (2 byte)        | `0x60` `0x33`           | Set Segment output `Y` to Acc                                                                                       | `ATFC`, converted into two byte                         |
+| `ROT`                  | `0x00`                  | Rotates `Acc` right with carry                                                                                      | `SKIP`                                                  |
+| `PRE x` (2 byte)       | `0x61 0x00-FF`          | Set melody ROM pointer position                                                                                     | `ATR`                                                   |
+| `SME` (2 byte)         | `0x60 0x31`             | Enable melody                                                                                                       | `ATFC`                                                  |
+| `RME` (2 byte)         | `0x60 0x30`             | Disable melody                                                                                                      | `ATFC`                                                  |
+| `TMEL` (2 byte)        | `0x60 0x32`             | Skip if `MES == 1`, set `MES` to 0 \[1]                                                                             | `ATFC`
+
+Note:
+1. Unclear what this register is at this point
